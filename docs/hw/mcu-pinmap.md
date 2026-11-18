@@ -6,11 +6,10 @@
 
 - AF 复用编号已按 STM32G474 通用映射填写，并与 CubeMX 参考工程的 `LL_GPIO_AF_13` 核对一致（PA8/PA9）。
 - **实现目标是 Zephyr**：本文件记录的是硬件配置意图，落地应以设备树（DTS）与 Zephyr 驱动表达；文中引用的 CubeMX（LL/HAL）生成代码只作意图证据，不是实现方案。
-- 其余缺口见 §3。
 
 ## 0 芯片与时钟
 
-本文件是 MCU 侧的实现绑定：时钟、引脚、外设与中断如何落到芯片，不反向约束协议与需求。数值一律以 [params.md](../params.md) 为准，正文只写 `PRM-xxx`；未登记的取值保留原值并列入 §3。术语以 [GLOSSARY.md](../../GLOSSARY.md) 为准，信号名使用领域词，不用固件内部名替代。
+本文件是 MCU 侧的实现绑定：时钟、引脚、外设与中断如何落到芯片，不反向约束协议与需求。数值一律以 [params.md](../params.md) 为准，正文只写 `PRM-xxx`。术语以 [GLOSSARY.md](../../GLOSSARY.md) 为准，信号名使用领域词，不用固件内部名替代。
 
 时钟链：HSE → ÷M → ×N → VCO → ÷R = SYSCLK；VCO ÷P 供 ADC1 / ADC2 时钟。
 
@@ -27,13 +26,13 @@
 | ADC1 / ADC2 时钟 | PRM-708 | MHz | 派生值；ASYNC DIV1 见 §2.1 |
 | 调试口 | SWD | — | `PA13` SWDIO / `PA14` SWCLK；归属 I-029 |
 | SysTick | 使能 | — | 抢占优先级见 §2.8 |
-| Dead Battery | 禁用 | — | 未登记（§3.1） |
+| Dead Battery | 禁用 | — | — |
 
 ## 1 引脚分配
 
 方向以 MCU 为参考，取值为「输入 / 输出 / 模拟 / 复用」。复用功能(AF)：只有 8 个复用引脚需要 AF，已按 STM32G474 通用映射填写（AF0/AF7/AF13），并与 CubeMX 参考工程的 `LL_GPIO_AF_13` 核对一致；其余引脚为「不适用」。「上电默认电平」指固件完成 GPIO 初始化后、输出脚所驱动的静态电平；非输出引脚（输入、模拟、复用）一律记「不适用」。归属需求取自 [SRS §7 追溯矩阵](../srs/pulse-gen-firmware.md)。
 
-参考工程（CubeMX）使用的固件标识符未登记（§3.1），保留如下供迁移对照，不参与术语：
+参考工程（CubeMX）使用的固件标识符如下，供迁移对照，不参与术语：
 
 - `GPIO Label`：PB4 `PULSE_START`、PB6 `TRIN`、PG7 `OCP_N`、PG8 `OCP_P`、PB5 `PULSE_BUSY`、PB9 `LED`、PD8–PD13 `POLE_F`–`POLE_A`、PG9 `OCP_RST`。
 - `Signal on Pin`：PF0 `RCC_OSC_IN`、PF1 `RCC_OSC_OUT`、PA13 `SYS_JTMS-SWDIO`、PA14 `SYS_JTCK-SWCLK`、PA0 `COMP3_INP; ADC1_IN1`、PA1 `COMP1_INP; ADC2_IN2`、PA8 `HRTIM1_CHA1`、PA9 `HRTIM1_CHA2`、PB4 `GPIO_EXTI4`、PB6 `GPIO_EXTI6`、PG7 `GPIO_EXTI7`、PG8 `GPIO_EXTI8`、PB5 / PB9 / PD8–PD13 / PG9 均 `GPIO_Output`、PC4 `USART1_TX`、PC5 `USART1_RX`、PA2 `USART2_TX`、PA3 `USART2_RX`。
@@ -72,19 +71,19 @@
 
 ## 2 外设配置
 
-下列各表一条参数一行。能对上 [params.md](../params.md) 的量值只写 `PRM-xxx`；未登记的取值保留原值并列入 §3。
+下列各表一条参数一行。能对上 [params.md](../params.md) 的量值只写 `PRM-xxx`；其余为实现绑定的结构化取值，直接写原值。
 
 ### 2.1 ADC1 / ADC2
 
 | 参数 | 值 | 单位 | 备注 |
 | --- | --- | --- | --- |
 | 引脚 | ADC1：PA0；ADC2：PA1 | — | 与 §1 一致；归属 F-035 |
-| 采样通道 | ADC1：CH1（IN1）；ADC2：CH2（IN2） | — | — |
+| 采样通道 | PRM-734 | — | — |
 | 分辨率 | PRM-709 | 位 | 两路一致 |
 | 采样时间 | PRM-710 | 周期 | 派生：12.5 周期 @ 48.57 MHz（PRM-710、PRM-708）≈ 257 ns，由 PRM-707/PRM-708 推得 |
 | 外部触发源 | ADC1：HRTIM1 TRG1（Timer B CMP3）；ADC2：HRTIM1 TRG3（Timer B CMP4） | — | 触发输出见 §2.4.4 |
 | 时钟预分频 | ASYNC DIV1 | — | 与 PRM-708 的 ADC 时钟对应 |
-| 过采样 | 禁用 | — | — |
+| 过采样 | PRM-735 | — | — |
 | DMA | 循环 | — | 通道号见 PRM-711；映射见 §2.7 |
 
 ### 2.2 COMP1 / COMP3
@@ -94,7 +93,7 @@
 | 正输入 INP | COMP1：PA1（负通道）；COMP3：PA0（正通道） | — | 引脚见 §1；归属 F-035 |
 | 负输入 INM | COMP1：`DAC1_OUT1`；COMP3：`DAC3_OUT1` | — | 内部 DAC 通道，见 §2.3 |
 | 迟滞 | PRM-712 | mV | 两路一致 |
-| 触发模式 | 正向过渡 | — | 见脚注 ¹ |
+| 触发模式 | PRM-736 | — | 见脚注 ¹ |
 
 ¹ 记「正向过渡」而非「上升沿事件」：比较器输出是电平而非边沿，这里指比较器输出由低到高的过渡，不表示边沿触发，语义不变。
 
@@ -103,8 +102,8 @@
 | 参数 | 值 | 单位 | 备注 |
 | --- | --- | --- | --- |
 | 输出通道 | DAC1：OUT1（内部）；DAC3：OUT1（内部） | — | 不出引脚；供比较器阈值 |
-| 采样保持 | DAC1：禁用；DAC3：默认 | — | 「默认」取值未给出（§3.1） |
-| 标定 | DAC1：出厂值；DAC3：默认 | — | 按术语表用「标定」；「默认」取值未给出 |
+| 采样保持 | DAC1：禁用；DAC3：默认 | — | 「默认」取值 `[待补]` |
+| 标定 | DAC1：出厂值；DAC3：默认 | — | 按术语表用「标定」；「默认」「出厂值」取值 `[待补]` |
 | 用途 | DAC1：COMP1 阈值（负通道）；DAC3：COMP3 阈值（正通道） | — | 归属 I-015、E-001 |
 
 ### 2.4 HRTIM1
@@ -123,7 +122,7 @@
 | 比较值 | PRM-715 | 计数 | 初值 65533（占位）。实际脉宽在运行时改写比较值：200–5000 ns 对应 68–1701 个 2.94 ns 计数（PRM-307、PRM-308） |
 | 置位源 | TA1 ← CMP1；TA2 ← CMP3 | — | — |
 | 复位源 | TA1 ← CMP2；TA2 ← PER | — | — |
-| 空闲电平 | IDLE | — | 具体电平（高 / 低）未给出（§3.1） |
+| 空闲电平 | IDLE | — | 具体电平（高 / 低）`[待补]` |
 | 重复计数 | PRM-716 | — | 更新禁用 |
 | 预装载 | 禁用 | — | — |
 
@@ -134,8 +133,8 @@
 | 模式 | 连续（CONTINUOUS） | — | — |
 | 预分频 | PRM-713 | — | `MUL2` |
 | 预装载 | 使能 | — | — |
-| 更新触发 | Timer B 更新 | — | 只给事件名，未给字段（§3.1） |
-| 复位触发 | UPDATE | — | 只给事件名，未给字段（§3.1） |
+| 更新触发 | Timer B 更新 | — | 只给事件名，未给字段 |
+| 复位触发 | UPDATE | — | 只给事件名，未给字段 |
 
 #### 2.4.3 故障与保护
 
@@ -191,7 +190,7 @@
 | TX 引脚 | USART1：PC4；USART2：PA2 | — | §1；`Signal on Pin` = `USART1_TX` / `USART2_TX` |
 | RX 引脚 | USART1：PC5；USART2：PA3 | — | §1；`Signal on Pin` = `USART1_RX` / `USART2_RX` |
 | 用途 | USART1：单板调试版协议口；USART2：发布版协议口 | — | 归属 I-027 / I-001～I-025 |
-| 选用方式 | 编译期选定 `CONFIG_PSG_PROTO_UART` = `USART2`（发布版，默认）或 `USART1`（单板调试版） | — | 宏名与默认项由本仓库约定；Zephyr 侧用 Kconfig choice 表达 |
+| 选用方式 | PRM-737 | — | 宏名与默认项由本仓库约定；Zephyr 侧用 Kconfig choice 表达 |
 
 #### 2.6.2 参数配置（两路一致）
 
@@ -219,18 +218,18 @@
 
 | 请求 | 通道 | 方向 | 模式 | 数据宽度 | 备注 |
 | --- | --- | --- | --- | --- | --- |
-| USART1_RX | `DMA1_Channel1` | 外设→内存 | 普通 | 字节 | 通道号未登记（§3.1） |
-| USART1_TX | `DMA1_Channel2` | 内存→外设 | 普通 | 字节 | 通道号未登记（§3.1） |
-| USART2_RX | `DMA1_Channel3` | 外设→内存 | 普通 | 字节 | 通道号未登记（§3.1） |
-| USART2_TX | `DMA1_Channel4` | 内存→外设 | 普通 | 字节 | 通道号未登记（§3.1） |
+| USART1_RX | `DMA1_Channel1` | 外设→内存 | 普通 | 字节 | — |
+| USART1_TX | `DMA1_Channel2` | 内存→外设 | 普通 | 字节 | — |
+| USART2_RX | `DMA1_Channel3` | 外设→内存 | 普通 | 字节 | — |
+| USART2_TX | `DMA1_Channel4` | 内存→外设 | 普通 | 字节 | — |
 | ADC1 | `DMA1_Channel5` | 外设→内存 | 循环 | PRM-725（半字） | 通道号见 PRM-711 |
 | ADC2 | `DMA1_Channel6` | 外设→内存 | 循环 | PRM-725（半字） | 通道号见 PRM-711 |
 
-所有 DMA 请求优先级均为 Low（PRM-726）。PRM-725 登记的是 ADC 用的半字宽度，USART 的字节宽度未登记（§3.1）。
+所有 DMA 请求优先级均为 Low（PRM-726）；请求到通道的映射见 PRM-738；USART 的字节宽度见 PRM-739，ADC 的半字宽度见 PRM-725。
 
 ### 2.8 NVIC
 
-抢占优先级分组见 PRM-727：全部为抢占优先级，无子优先级，故「子优先级」列为 `—`。下表各行按分档排列；PRM-728 为汇总登记，逐项原值见 §3.1¹。
+抢占优先级分组见 PRM-727：全部为抢占优先级，无子优先级，故「子优先级」列为 `—`。下表各行按分档排列；PRM-728 为汇总登记，逐项见 PRM-729～PRM-731¹。
 
 | 中断 | 抢占优先级 | 子优先级 | 备注 |
 | --- | --- | --- | --- |
@@ -244,38 +243,3 @@
 | HRTIM1_TIMA | PRM-731 | — | 与 §2.4.6 同源；CubeMX 参考工程抢占 4、子优先级 0 |
 
 ¹ 已完成拆分登记：SysTick 见 PRM-729，DMA/USART 见 PRM-730，EXTI9_5/HRTIM 见 PRM-731；PRM-728 只作汇总。EXTI4 的抢占优先级待补，需在工程 / Zephyr 设备树中确认。
-
-## 3 未登记与缺口
-
-### 3.1 未登记参数与登记缺口
-
-下列取值在 params.md 的 7xx 段没有可逐项对应的登记项，或登记粒度过粗；正文保留原值，登记后应改为引用。
-
-| 参数 | 原值 | 备注 |
-| --- | --- | --- |
-| ADC 采样通道 | ADC1：CH1（IN1）；ADC2：CH2（IN2） | — |
-| ADC 外部触发源 | ADC1：HRTIM1 TRG1（Timer B CMP3）；ADC2：HRTIM1 TRG3（Timer B CMP4） | 触发输出见 §2.4.4 |
-| ADC 时钟预分频 | ASYNC DIV1 | 与 PRM-708 配合 |
-| ADC 过采样 | 禁用 | — |
-| COMP 输入连接 | COMP1：INP = PA1、INM = `DAC1_OUT1`；COMP3：INP = PA0、INM = `DAC3_OUT1` | — |
-| COMP 触发模式 | 正向过渡（字面为「上升沿事件」） | 见 §2.2 脚注 |
-| DAC 输出通道 | DAC1：OUT1（内部）；DAC3：OUT1（内部） | 不出引脚 |
-| DAC 采样保持与标定 | DAC1：禁用、出厂值；DAC3：默认、默认 | 「默认」与「出厂值」未展开 |
-| HRTIM 输出与模式 | TA1 → PA8；TA2 → PA9；连续（CONTINUOUS） | TA、TB 同为连续模式 |
-| HRTIM 比较单元 | CMP1 / CMP2 / CMP3 | 三单元取同一比较值 |
-| HRTIM 置位源 / 复位源 | TA1 ← CMP1、TA2 ← CMP3；TA1 ← CMP2、TA2 ← PER | — |
-| HRTIM 空闲电平与预装载 | IDLE（具体电平未给出）；TA 预装载禁用、TB 预装载使能 | — |
-| HRTIM Timer B 触发 | 更新触发 = Timer B 更新；复位触发 = UPDATE | 只给事件名 |
-| HRTIM 故障配置 | FLT4 / FLT5；源 `HRTIM_FAULT_4` / `HRTIM_FAULT_5`；滤波无；条件复位；输出 INACTIVE | 对应引脚未给出 |
-| HRTIM ADC 触发 | TRG1 ← Timer B CMP3；TRG3 ← Timer B CMP4；更新源 Timer B | — |
-| HRTIM 突发模式 | 使能；单次（SINGLESHOT）；时钟源 FHRTIM；触发源 Timer A 重复 | 基准 PRM-707；派生换算见 §2.4.5 |
-| HRTIM 中断映射 | SYSFLT / FLT4 / FLT5 → `HRTIM1_FLT_IRQn`；TIMA 重复 → `HRTIM1_TIMA_IRQn` | 标识符，非数值参数 |
-| USART 模式与方向 | 异步；收发 | — |
-| USART 其余选项 | FIFO 使能；单采样、自动波特率、TX / RX 引脚反相、数据反相、TX / RX 引脚交换、MSB First 均禁用；溢出使能；DMA on RX Error 启用 | — |
-| USART 双口二选一 | 编译期 `CONFIG_PSG_PROTO_UART`：`USART2`（默认）/ `USART1` | 本仓库约定；见 §2.6.1 |
-| DMA（USART 侧） | `DMA1_Channel1`–`DMA1_Channel4`；普通模式；字节宽度 | PRM-725 只登记 ADC 半字宽度 |
-| NVIC 逐项抢占优先级 | SysTick 15；DMA1_Channel1–6 5；USART1 5；USART2 5；EXTI9_5 4；HRTIM1_FLT 4；HRTIM1_TIMA 4 | PRM-728 汇总登记，无法逐项还原 |
-| GPIO 上电输出电平 | PB5、PD8–PD13、PG9 低；PB9 高 | 见 §1 |
-| GPIO 上下拉 | PB4 / PB6 / PG7 / PG8 下拉；其余无上下拉 | 见 §1 |
-| SYS Dead Battery | 禁用 | — |
-| 参考工程标识符 | `GPIO Label` 与 `Signal on Pin` | 清单见 §1；未登记，不参与术语 |
