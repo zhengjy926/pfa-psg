@@ -50,7 +50,7 @@ typedef struct {
 } uart_config_t;
 
 typedef struct {
-    size_t (*read)(void *context, uart_rx_byte_t *out, size_t capacity);
+    size_t (*read)(void *context, uint8_t *values, uint32_t *timestamps, size_t capacity);
     uint32_t (*take_gaps)(void *context);
     bool (*write)(void *context, const uint8_t *frame, size_t length);
     bool (*poll_tx_complete)(void *context, uint64_t *completion_us);
@@ -64,9 +64,9 @@ struct uart {
     const uart_ops_t *ops;
 };
 
-static inline size_t uart_read(const uart_t *uart, uart_rx_byte_t *out, size_t capacity)
+static inline size_t uart_read(const uart_t *uart, uint8_t *values, uint32_t *timestamps, size_t capacity)
 {
-    return uart->ops->read(uart->context, out, capacity);
+    return uart->ops->read(uart->context, values, timestamps, capacity);
 }
 
 static inline uint32_t uart_take_gaps(const uart_t *uart)

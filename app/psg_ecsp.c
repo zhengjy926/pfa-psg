@@ -5,6 +5,7 @@
 #include "app/app_config.h"
 #include "app/ecsp/ecsp_codes.h"
 #include "app/psg_reports.h"
+#include "utils/psg_log.h"
 
 #define PSG_GROUP_STRIDE PSG_GROUP_ENCODED_BYTES
 
@@ -267,10 +268,14 @@ static void handle_frame(psg_ecsp_t *svc, const ecsp_frame_t *frame, uint64_t no
         return; /* ECSP 5.3: address mismatch is discarded with no action. */
     }
     if (svc->reset_pending) {
+        /* ECSP 4.5: a second reset request during the reset sequence gets 0x11
+         * and does not restart the sequence. */
+        if (frame->command == ECSP_CMD_RESET) {
+            reply_code(svc, frame->command, ECSP_RSP_BUSY);
+        }
         return;
     }
     ecsp_session_note_command(&svc->session);
-    svc->frames_handled++;
 
     if (!command_supported(frame->command)) {
         reply_code(svc, frame->command, ECSP_RSP_UNSUPPORTED);
@@ -325,8 +330,13 @@ static void handle_frame(psg_ecsp_t *svc, const ecsp_frame_t *frame, uint64_t no
             reply_small(svc, frame->command, hit.code, hit.payload, hit.payload_length);
             break;
         }
-        reply_code(svc, frame->command, ECSP_RSP_SUCCESS);
-        ecsp_tx_request_reset_after_reply(&svc->tx);
+        {
+            uint8_t success = ECSP_RSP_SUCCESS;
+
+            /* The reset is armed by this reply's completion, not by any other
+             * reply that happens to finish first (I-023). */
+            (void)ecsp_tx_submit_reset_reply(&svc->tx, ECSP_CMD_RESET, &success, 1u);
+        }
         dedup_store(&svc->dedup, ECSP_CMD_RESET, frame->payload[0], ECSP_RSP_SUCCESS, NULL, 0u);
         svc->reset_pending = true;
         break;
@@ -628,17 +638,19 @@ void psg_ecsp_init(psg_ecsp_t *svc, const psg_ecsp_config_t *config, uint64_t no
     svc->clear_pending = false;
 }
 
-void psg_ecsp_feed(psg_ecsp_t *svc, const uart_rx_byte_t *bytes, size_t count, uint32_t gaps)
+void psg_ecsp_feed(psg_ecsp_t *svc, const uint8_t *values, const uint32_t *timestamps, size_t count,
+                   uint32_t gaps)
 {
     if (gaps != 0u) {
         ecsp_rx_note_gap(&svc->rx);
     }
-    (void)ecsp_rx_feed(&svc->rx, bytes, count);
+    (void)ecsp_rx_feed(&svc->rx, values, timestamps, count);
 }
 
 void psg_ecsp_step(psg_ecsp_t *svc, uint64_t now_us)
 {
     uint8_t word;
+    uint32_t overflow_total;
 
     if (svc->clear_pending && psg_run_clear_due(svc->config.run, now_us)) {
         bool cleared = psg_run_clear_finish(svc->config.run);
@@ -661,7 +673,14 @@ void psg_ecsp_step(psg_ecsp_t *svc, uint64_t now_us)
         psg_run_result_t result;
 
         if (psg_run_take_result(svc->config.run, &result)) {
-            if (svc->session.upload_enabled) {
+            /* F-047: only a normal completion or a current-anomaly
+             * termination is uploaded; a mid-run stop or a settlement
+             * timeout updates 0x31 but is not an upload event. */
+            bool uploadable = (result.reason == PSG_RUN_END_NORMAL) ||
+                              (result.reason == PSG_RUN_END_UNDERCURRENT) ||
+                              (result.reason == PSG_RUN_END_OVERCURRENT);
+
+            if (uploadable && svc->session.upload_enabled) {
                 uint8_t block[PSG_STATUS_BLOCK_BYTES];
                 psg_reports_pack_status(&result.status, block);
                 (void)ecsp_tx_submit_event(&svc->tx, 0x3Cu, block, PSG_STATUS_BLOCK_BYTES);
@@ -674,6 +693,14 @@ void psg_ecsp_step(psg_ecsp_t *svc, uint64_t now_us)
         ecsp_tx_submit_fault(&svc->tx, word);
     }
     svc->last_fault_word = word;
+
+    /* N-005: every queue overflow reaches the RTT ERROR log in release builds. */
+    overflow_total = ecsp_rx_overflow_count(&svc->rx) + ecsp_tx_overflow_count(&svc->tx) +
+                     dedup_overflow_count(&svc->dedup);
+    if (overflow_total != svc->overflow_seen) {
+        svc->overflow_seen = overflow_total;
+        PSG_LOG_ERROR_MSG("ECSP queue overflow");
+    }
 
     ecsp_tx_pump(&svc->tx, now_us);
 

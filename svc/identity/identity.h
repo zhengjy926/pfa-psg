@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "app/app_config.h"
+#include "shared/psg_config.h"
 #include "drv/flash/flash.h"
 
 typedef struct {

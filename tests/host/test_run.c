@@ -134,6 +134,31 @@ TEST(run, failed_clear_sets_bit0_and_replies_0x20)
     CHECK_EQ(psg_run_state(&fixture.run), PSG_RUN_CURRENT_EXCEPTION);
 }
 
+TEST(run, handshake_reset_does_not_resurrect_the_old_normal_reading)
+{
+    psg_fixture_t fixture;
+    uint8_t request[16];
+    uint8_t response[32];
+    size_t response_length = 0u;
+    size_t length;
+
+    fixture_ready(&fixture);
+    CHECK(fixture_configure_run(&fixture));
+    CHECK(fixture_start_run(&fixture));
+    fixture_complete_run(&fixture, PSG_RUN_END_NORMAL, PSG_CHANNEL_STOPPED, 7.0f, PSG_CHANNEL_STOPPED, 8.0f, 1u);
+
+    length = ecsp_frame_encode(request, sizeof(request), 0x03u, 0x02u, 0x01u, NULL, 0u);
+    CHECK(fixture_exchange(&fixture, request, length, response, sizeof(response), &response_length));
+
+    fixture_complete_run(&fixture, PSG_RUN_END_OVERCURRENT, PSG_CHANNEL_OVERCURRENT, 12.0f,
+                         PSG_CHANNEL_STOPPED, 0.0f, 0u);
+    CHECK(clear_anomaly(&fixture, response, sizeof(response), &response_length));
+    CHECK_EQ(response[6], 0x00u);
+    /* E-004: I-012 already reset the ordinary readings. */
+    CHECK_NEAR(psg_run_status(&fixture.run)->channel_current[0], 0.0f, 0.001f);
+    CHECK_NEAR(psg_run_status(&fixture.run)->channel_current[1], 0.0f, 0.001f);
+}
+
 TEST(run, asserted_latch_at_start_returns_0x14_and_sets_bit0)
 {
     psg_fixture_t fixture;

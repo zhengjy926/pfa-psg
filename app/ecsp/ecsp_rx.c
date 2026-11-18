@@ -43,12 +43,12 @@ void ecsp_rx_init(ecsp_rx_t *rx)
     rx->initialized = true;
 }
 
-size_t ecsp_rx_feed(ecsp_rx_t *rx, const uart_rx_byte_t *bytes, size_t count)
+size_t ecsp_rx_feed(ecsp_rx_t *rx, const uint8_t *values, const uint32_t *timestamps, size_t count)
 {
     size_t accepted = 0u;
     size_t index;
 
-    if ((rx == NULL) || (bytes == NULL) || (count == 0u)) {
+    if ((rx == NULL) || (values == NULL) || (timestamps == NULL) || (count == 0u)) {
         return 0u;
     }
 
@@ -58,8 +58,8 @@ size_t ecsp_rx_feed(ecsp_rx_t *rx, const uart_rx_byte_t *bytes, size_t count)
         if (rx->length >= (uint16_t)PSG_ECSP_RX_WINDOW_BYTES) {
             rx_drop_oldest(rx);
         }
-        rx->values[rx->length] = bytes[index].value;
-        rx->timestamps[rx->length] = bytes[index].timestamp_us;
+        rx->values[rx->length] = values[index];
+        rx->timestamps[rx->length] = timestamps[index];
         rx->length++;
         accepted++;
     }

@@ -15,12 +15,16 @@ void psg_run_init(psg_run_t *run, psg_board_t board, psg_fault_t *fault)
     run->status.channel_current[1] = 0.0f;
     run->status.completed_triggers = 0u;
     run->snapshot_next = 0u;
+    run->snapshots[0].valid = false;
+    run->snapshots[1].valid = false;
     run->last_normal_current[0] = 0.0f;
     run->last_normal_current[1] = 0.0f;
     run->has_normal_current = false;
     run->run_sequence = 0u;
     run->completed_triggers = 0u;
-    run->result_pending = false;
+        run->result_head = 0u;
+    run->result_count = 0u;
+    run->result_overflow = 0u;
     run->clear_active = false;
     run->clear_deadline_us = 0u;
     run->board = board;
@@ -190,6 +194,7 @@ void psg_run_stop(psg_run_t *run)
 static void publish_result(psg_run_t *run, psg_run_end_reason_t reason)
 {
     psg_run_snapshot_t *snapshot = &run->snapshots[run->snapshot_next];
+    psg_run_result_t *slot;
 
     snapshot->status = run->status;
     snapshot->reason = reason;
@@ -197,11 +202,19 @@ static void publish_result(psg_run_t *run, psg_run_end_reason_t reason)
     snapshot->valid = true;
     run->snapshot_next = (uint8_t)((run->snapshot_next + 1u) % 2u);
 
-    run->result.status = run->status;
-    run->result.reason = reason;
-    run->result.run_sequence = run->run_sequence;
-    run->result_pending = true;
-}
+    if (run->result_count == PSG_RUN_RESULT_DEPTH) {
+        /* Keep every completion visible to 0x3C: replace the oldest and count
+         * the overflow instead of silently coalescing runs. */
+        run->result_head = (uint8_t)((run->result_head + 1u) % PSG_RUN_RESULT_DEPTH);
+        run->result_count--;
+        run->result_overflow++;
+    }
+    slot = &run->results[(run->result_head + run->result_count) % PSG_RUN_RESULT_DEPTH];
+    slot->status = snapshot->status;
+    slot->reason = reason;
+    slot->run_sequence = snapshot->run_sequence;
+    run->result_count++;
+    }
 
 void psg_run_complete(psg_run_t *run, psg_run_end_reason_t reason, const psg_channel_result_t *channels,
                       uint16_t completed_rounds)
@@ -307,17 +320,24 @@ void psg_run_reset_after_handshake(psg_run_t *run)
     }
     run->status.completed_triggers = 0u;
     run->completed_triggers = 0u;
-    run->result_pending = false;
+        run->result_head = 0u;
+    run->result_count = 0u;
+    /* E-004: an I-012 reset clears the ordinary readings, so a later 0x3D
+     * must not resurrect the previous run's currents. */
+    run->has_normal_current = false;
+    run->last_normal_current[0] = 0.0f;
+    run->last_normal_current[1] = 0.0f;
 }
 
 bool psg_run_take_result(psg_run_t *run, psg_run_result_t *result)
 {
-    if (!run->result_pending) {
-        return false;
+    if (run->result_count == 0u) {
+                return false;
     }
-    *result = run->result;
-    run->result_pending = false;
-    return true;
+    *result = run->results[run->result_head];
+    run->result_head = (uint8_t)((run->result_head + 1u) % PSG_RUN_RESULT_DEPTH);
+    run->result_count--;
+        return true;
 }
 
 const psg_output_status_t *psg_run_status(const psg_run_t *run)

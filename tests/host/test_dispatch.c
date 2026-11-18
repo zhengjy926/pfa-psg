@@ -306,6 +306,45 @@ TEST(dispatch, status_read_shows_running_then_reports_the_fault_channel)
     CHECK_NEAR(ecsp_read_f32(&response[10]), 12.0f, 0.001f);
 }
 
+TEST(dispatch, reset_waits_for_its_own_reply_not_an_earlier_one)
+{
+    psg_fixture_t fixture;
+    uint8_t request[16];
+    uint8_t reset_request[16];
+    uint8_t response[64];
+    static const uint8_t reset_sequence = 0x33u;
+    size_t response_length = 0u;
+    size_t length;
+    size_t reset_length;
+    uint16_t fault_reply_length;
+
+    fixture_ready(&fixture);
+
+    /* One query reply is already on the wire when 0x07 arrives. */
+    length = ecsp_frame_encode(request, sizeof(request), 0x03u, 0x02u, ECSP_CMD_GET_FAULT, NULL, 0u);
+    fixture_feed_frame(&fixture, request, length);
+    fixture_pump(&fixture);
+    CHECK(fixture_take_tx(&fixture, response, sizeof(response), &response_length));
+    fault_reply_length = (uint16_t)response_length;
+
+    reset_length = ecsp_frame_encode(reset_request, sizeof(reset_request), 0x03u, 0x02u, ECSP_CMD_RESET,
+                                     &reset_sequence, 1u);
+    fixture_feed_frame(&fixture, reset_request, reset_length);
+    fixture_pump(&fixture);
+    /* The reset reply is queued behind the query reply, not yet on the wire. */
+    CHECK(!fixture_take_tx(&fixture, response, sizeof(response), &response_length));
+
+    fixture_advance(&fixture, psg_uart_frame_duration_us(fault_reply_length));
+    fixture_pump(&fixture);
+    CHECK(fixture_take_tx(&fixture, response, sizeof(response), &response_length));
+    CHECK_EQ(response[6], ECSP_RSP_SUCCESS);
+    CHECK(!fixture.board.reset_requested); /* the query completion must not reset */
+
+    fixture_advance(&fixture, psg_uart_frame_duration_us((uint32_t)response_length));
+    fixture_pump(&fixture);
+    CHECK(fixture.board.reset_requested);
+}
+
 TEST(dispatch, bad_sequence_write_preserves_the_previous_table)
 {
     psg_fixture_t fixture;

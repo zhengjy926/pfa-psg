@@ -1,7 +1,8 @@
 #include "bsp/psg_v3/psg_board.h"
 
-#include "app/app_config.h"
+#include "bsp/psg_protection.h"
 #include "bsp/psg_v3/psg_board_config.h"
+#include "shared/psg_config.h"
 #include "stm32g4xx.h"
 
 extern uint32_t SystemCoreClock;
@@ -141,4 +142,28 @@ void psg_board_init(void)
 psg_board_devices_t *psg_board_devices(void)
 {
     return &g_devices;
+}
+
+uint8_t psg_protection_evidence(void)
+{
+    uint8_t evidence = 0u;
+
+    if (comp_overcurrent(&g_devices.comp_pos.base)) {
+        evidence |= PSG_PROTECTION_OVERCURRENT_POS;
+    }
+    if (comp_overcurrent(&g_devices.comp_neg.base)) {
+        evidence |= PSG_PROTECTION_OVERCURRENT_NEG;
+    }
+    if (comp_latch_active(&g_devices.comp_pos.base)) {
+        evidence |= PSG_PROTECTION_LATCH_POS;
+    }
+    if (comp_latch_active(&g_devices.comp_neg.base)) {
+        evidence |= PSG_PROTECTION_LATCH_NEG;
+    }
+    return evidence;
+}
+
+void psg_protection_latch_reset(void)
+{
+    comp_latch_reset_pulse(&g_devices.comp_pos.base);
 }

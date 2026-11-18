@@ -15,7 +15,7 @@
 void uart_ring_push(uart_data_t *data, uint8_t value, uint32_t timestamp_us);
 
 /* Pop up to capacity bytes, oldest first. */
-size_t uart_ring_pop(uart_data_t *data, uart_rx_byte_t *out, size_t capacity);
+size_t uart_ring_pop(uart_data_t *data, uint8_t *values, uint32_t *timestamps, size_t capacity);
 
 /* Read and clear the accumulated dropped-byte count. */
 uint32_t uart_ring_take_gaps(uart_data_t *data);

@@ -132,6 +132,52 @@ TEST(upload, status_report_does_not_consume_the_snapshot)
     CHECK_EQ(ecsp_read_u16(&response[18]), 1u);
 }
 
+TEST(upload, two_completions_between_steps_are_both_reported)
+{
+    psg_fixture_t fixture;
+    ecsp_frame_t frame;
+
+    fixture_ready(&fixture);
+    CHECK(fixture_configure_run(&fixture));
+    set_upload(&fixture, true);
+
+    psg_run_complete(&fixture.run, PSG_RUN_END_NORMAL,
+                     (const psg_channel_result_t[]){{PSG_CHANNEL_STOPPED, 1.0f}, {PSG_CHANNEL_STOPPED, 1.0f}}, 1u);
+    psg_run_complete(&fixture.run, PSG_RUN_END_NORMAL,
+                     (const psg_channel_result_t[]){{PSG_CHANNEL_STOPPED, 2.0f}, {PSG_CHANNEL_STOPPED, 2.0f}}, 1u);
+
+    fixture_pump(&fixture);
+    CHECK(take_parsed(&fixture, &frame));
+    CHECK_EQ(frame.command, 0x3Cu);
+    CHECK_NEAR(ecsp_read_f32(&frame.payload[3]), 1.0f, 0.001f);
+
+    fixture_advance(&fixture, STATUS_REPORT_FRAME_US);
+    fixture_pump(&fixture);
+    CHECK(take_parsed(&fixture, &frame));
+    CHECK_EQ(frame.command, 0x3Cu);
+    CHECK_NEAR(ecsp_read_f32(&frame.payload[3]), 2.0f, 0.001f);
+}
+
+TEST(upload, stop_and_settlement_timeout_are_not_uploaded)
+{
+    psg_fixture_t fixture;
+    uint8_t raw[64];
+    size_t length = 0u;
+
+    fixture_ready(&fixture);
+    CHECK(fixture_configure_run(&fixture));
+    set_upload(&fixture, true);
+
+    fixture_complete_run(&fixture, PSG_RUN_END_SETTLEMENT_TIMEOUT, PSG_CHANNEL_STOPPED, 1.0f,
+                         PSG_CHANNEL_STOPPED, 1.0f, 0u);
+    fixture_pump(&fixture);
+    CHECK(!fixture_take_tx(&fixture, raw, sizeof(raw), &length));
+
+    fixture_complete_run(&fixture, PSG_RUN_END_STOPPED, PSG_CHANNEL_STOPPED, 2.0f, PSG_CHANNEL_STOPPED, 2.0f, 0u);
+    fixture_pump(&fixture);
+    CHECK(!fixture_take_tx(&fixture, raw, sizeof(raw), &length));
+}
+
 TEST(upload, current_anomaly_termination_reports_the_channel_evidence)
 {
     psg_fixture_t fixture;

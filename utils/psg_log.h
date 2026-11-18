@@ -7,7 +7,7 @@
 #ifndef PSG_UTILS_PSG_LOG_H
 #define PSG_UTILS_PSG_LOG_H
 
-#include "app/app_config.h"
+#include "shared/psg_config.h"
 
 typedef enum {
     PSG_LOG_ERROR = 0,

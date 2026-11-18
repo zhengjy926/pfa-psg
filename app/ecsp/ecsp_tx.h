@@ -32,6 +32,7 @@ typedef enum {
 typedef struct {
     uint8_t command;
     uint8_t length;
+    bool reset_after;
     uint8_t payload[ECSP_TX_SMALL_PAYLOAD_BYTES];
 } ecsp_tx_item_t;
 
@@ -67,7 +68,7 @@ typedef struct {
     bool heartbeat_armed;
     uint64_t heartbeat_due_us;
 
-    bool reset_after_reply;
+    bool in_flight_reset;
     bool reset_ready;
 
     uint32_t overflow_count;
@@ -79,14 +80,16 @@ void ecsp_tx_init(ecsp_tx_t *tx, const uart_t *uart, uint8_t product, uint8_t bo
 void ecsp_tx_set_connected(ecsp_tx_t *tx, bool connected, uint64_t now_us);
 
 bool ecsp_tx_submit_reply(ecsp_tx_t *tx, uint8_t command, const uint8_t *payload, uint16_t payload_length);
+
+/* 0x07: this reply, and only this reply, arms the board reset on completion. */
+bool ecsp_tx_submit_reset_reply(ecsp_tx_t *tx, uint8_t command, const uint8_t *payload, uint16_t payload_length);
+
 bool ecsp_tx_submit_large_reply(ecsp_tx_t *tx, const uint8_t *frame, uint16_t frame_length);
 bool ecsp_tx_submit_event(ecsp_tx_t *tx, uint8_t command, const uint8_t *payload, uint16_t payload_length);
 
 /* 0x11 session exception: one outstanding report, newest fault word wins. */
 void ecsp_tx_submit_fault(ecsp_tx_t *tx, uint8_t fault_word);
 
-/* 0x07: the reply must complete before the reset is executed. */
-void ecsp_tx_request_reset_after_reply(ecsp_tx_t *tx);
 bool ecsp_tx_take_reset(ecsp_tx_t *tx);
 
 /* Drop queued uploads and pending large replies (duplicate handshake). */
@@ -95,7 +98,6 @@ void ecsp_tx_flush(ecsp_tx_t *tx);
 /* Completion bookkeeping plus at most one new transmission. */
 void ecsp_tx_pump(ecsp_tx_t *tx, uint64_t now_us);
 
-bool ecsp_tx_idle(const ecsp_tx_t *tx);
 uint32_t ecsp_tx_overflow_count(const ecsp_tx_t *tx);
 
 #endif /* PSG_APP_ECSP_ECSP_TX_H */

@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "app/app_config.h"
+#include "shared/psg_config.h"
 
 #define PSG_GROUP_MAX 20u
 #define PSG_GROUP_ENCODED_BYTES 22u

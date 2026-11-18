@@ -21,13 +21,13 @@ void uart_ring_push(uart_data_t *data, uint8_t value, uint32_t timestamp_us)
     data->head = next;
 }
 
-size_t uart_ring_pop(uart_data_t *data, uart_rx_byte_t *out, size_t capacity)
+size_t uart_ring_pop(uart_data_t *data, uint8_t *values, uint32_t *timestamps, size_t capacity)
 {
     size_t count = 0u;
 
     while ((count < capacity) && (data->tail != data->head)) {
-        out[count].value = data->ring[data->tail];
-        out[count].timestamp_us = data->stamps[data->tail];
+        values[count] = data->ring[data->tail];
+        timestamps[count] = data->stamps[data->tail];
         data->tail = (data->tail + 1u) & UART_RX_RING_MASK;
         count++;
     }

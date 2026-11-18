@@ -8,7 +8,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "app/app_config.h"
+#include "shared/psg_bytes.h"
+#include "shared/psg_config.h"
 
 typedef struct {
     uint8_t product;
@@ -38,14 +39,6 @@ void ecsp_frame_finish(uint8_t *out, size_t frame_length);
 
 /* Validate and copy one complete frame: head, length, tail, CRC and bounds. */
 bool ecsp_frame_parse(const uint8_t *bytes, size_t length, ecsp_frame_t *frame);
-
-/* Little-endian payload codecs (PRM-014). */
-void ecsp_write_u16(uint8_t *out, uint16_t value);
-void ecsp_write_u32(uint8_t *out, uint32_t value);
-void ecsp_write_f32(uint8_t *out, float value);
-uint16_t ecsp_read_u16(const uint8_t *in);
-uint32_t ecsp_read_u32(const uint8_t *in);
-float ecsp_read_f32(const uint8_t *in);
 
 static inline bool ecsp_payload_length_valid(uint16_t length, uint16_t expected)
 {

@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "app/ecsp/ecsp_frame.h"
+#include "shared/psg_bytes.h"
 
 #define PRM_301_GROUPS_MIN 1u
 #define PRM_301_GROUPS_MAX 20u

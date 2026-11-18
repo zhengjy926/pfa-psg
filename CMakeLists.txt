@@ -38,6 +38,7 @@ set(PSG_CORE_SOURCES
     drv/uart/uart_ring.c
     run/pulse_engine.c
     run/run_config.c
+    shared/psg_bytes.c
     svc/dedup/dedup.c
     svc/fault/fault.c
     svc/identity/identity.c

@@ -4,11 +4,11 @@
 
 #include "drv/uart/uart_ring.h"
 
-static size_t fake_uart_read(void *context, uart_rx_byte_t *out, size_t capacity)
+static size_t fake_uart_read(void *context, uint8_t *values, uint32_t *timestamps, size_t capacity)
 {
     fake_uart_t *fake = (fake_uart_t *)context;
 
-    return uart_ring_pop(&fake->data, out, capacity);
+    return uart_ring_pop(&fake->data, values, timestamps, capacity);
 }
 
 static uint32_t fake_uart_take_gaps(void *context)

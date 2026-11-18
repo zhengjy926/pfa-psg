@@ -70,6 +70,8 @@ typedef struct {
     uint32_t run_sequence;
 } psg_run_result_t;
 
+#define PSG_RUN_RESULT_DEPTH 4u
+
 typedef struct {
     psg_run_config_t config;
     psg_run_state_t state;
@@ -82,8 +84,10 @@ typedef struct {
     uint32_t run_sequence;
     uint16_t completed_triggers;
 
-    bool result_pending;
-    psg_run_result_t result;
+    psg_run_result_t results[PSG_RUN_RESULT_DEPTH];
+    uint8_t result_head;
+    uint8_t result_count;
+    uint32_t result_overflow;
 
     bool clear_active;
     uint64_t clear_deadline_us;

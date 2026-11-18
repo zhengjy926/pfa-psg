@@ -36,7 +36,7 @@ void ecsp_rx_init(ecsp_rx_t *rx);
 
 /* Append received bytes.  Returns the number accepted; bytes beyond the window
  * capacity are dropped oldest-first and force a resynchronisation. */
-size_t ecsp_rx_feed(ecsp_rx_t *rx, const uart_rx_byte_t *bytes, size_t count);
+size_t ecsp_rx_feed(ecsp_rx_t *rx, const uint8_t *values, const uint32_t *timestamps, size_t count);
 
 /* Record a byte-stream gap reported by the UART ring (HW-03). */
 void ecsp_rx_note_gap(ecsp_rx_t *rx);

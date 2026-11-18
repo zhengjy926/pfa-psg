@@ -11,11 +11,13 @@
 #include "svc/identity/identity.h"
 #include "task.h"
 
-#define UART_BATCH_BYTES 64u
+#define UART_BATCH_BYTES PSG_UART_RX_TASK_BATCH_BYTES
 #define UART_BATCH_DEPTH 8u
+#define UART_FEED_CHUNK_BYTES 16u
 
 typedef struct {
     uint8_t count;
+    uint8_t gap;
     uint8_t data[UART_BATCH_BYTES];
     uint32_t stamps[UART_BATCH_BYTES];
 } psg_uart_batch_t;
@@ -35,6 +37,8 @@ static uint8_t g_settlement_queue_storage[2u * sizeof(uint32_t)];
 static QueueHandle_t g_settlement_queue;
 
 static volatile uint32_t g_progress[PSG_TASK_COUNT];
+static volatile bool g_uart_batch_dropped;
+static psg_uart_batch_t g_uart_batch;
 
 static StaticTask_t g_task_control[PSG_TASK_COUNT];
 static StackType_t g_monitor_stack[PSG_STACK_MONITOR_BYTES / sizeof(StackType_t)];
@@ -87,28 +91,18 @@ void psg_rtos_assert_failed(void)
 
 static void uart_to_protocol_queue(void)
 {
-    uart_rx_byte_t bytes[UART_BATCH_BYTES];
-    uint32_t gaps;
     size_t count;
+    uint32_t gaps;
 
-    count = uart_read(&g_devices->uart.base, bytes, UART_BATCH_BYTES);
+    count = uart_read(&g_devices->uart.base, g_uart_batch.data, g_uart_batch.stamps, UART_BATCH_BYTES);
     gaps = uart_take_gaps(&g_devices->uart.base);
     if ((count != 0u) || (gaps != 0u)) {
-        psg_uart_batch_t batch;
-        size_t index;
-
-        if (count > UART_BATCH_BYTES) {
-            count = UART_BATCH_BYTES;
-        }
-        batch.count = (uint8_t)count;
-        for (index = 0u; index < count; index++) {
-            batch.data[index] = bytes[index].value;
-            batch.stamps[index] = bytes[index].timestamp_us;
-        }
-        if (xQueueSend(g_uart_queue, &batch, 0u) != pdPASS) {
-            /* The driver ring keeps producing; losing a batch forces the
-             * parser to resynchronise rather than silently dropping bytes. */
-            ecsp_rx_note_gap(&g_ecsp.rx);
+        g_uart_batch.count = (uint8_t)count;
+        g_uart_batch.gap = (gaps != 0u) ? 1u : 0u;
+        if (xQueueSend(g_uart_queue, &g_uart_batch, 0u) != pdPASS) {
+            /* Never touch the parser from this task; the protocol task turns
+             * the dropped batch into a resynchronisation (HW-03). */
+            g_uart_batch_dropped = true;
         }
     }
 }
@@ -130,18 +124,30 @@ static void task_protocol(void *argument)
 
     for (;;) {
         psg_uart_batch_t batch;
-        BaseType_t received = xQueueReceive(g_uart_queue, &batch, pdMS_TO_TICKS(5));
+        BaseType_t received = xQueueReceive(g_uart_queue, &batch, pdMS_TO_TICKS(1));
 
         while (received == pdPASS) {
-            uart_rx_byte_t bytes[UART_BATCH_BYTES];
-            size_t index;
+            size_t offset = 0u;
 
-            for (index = 0u; index < batch.count; index++) {
-                bytes[index].value = batch.data[index];
-                bytes[index].timestamp_us = batch.stamps[index];
+            if (batch.count == 0u) {
+                /* A gap-only batch still has to force a resynchronisation. */
+                psg_ecsp_feed(&g_ecsp, batch.data, batch.stamps, 0u, batch.gap);
             }
-            psg_ecsp_feed(&g_ecsp, bytes, batch.count, 0u);
+            while (offset < batch.count) {
+                size_t count = (size_t)batch.count - offset;
+
+                if (count > UART_FEED_CHUNK_BYTES) {
+                    count = UART_FEED_CHUNK_BYTES;
+                }
+                psg_ecsp_feed(&g_ecsp, &batch.data[offset], &batch.stamps[offset], count,
+                              (offset == 0u) ? batch.gap : 0u);
+                offset += count;
+            }
             received = xQueueReceive(g_uart_queue, &batch, 0u);
+        }
+        if (g_uart_batch_dropped) {
+            g_uart_batch_dropped = false;
+            ecsp_rx_note_gap(&g_ecsp.rx);
         }
         psg_ecsp_step(&g_ecsp, timebase_now_us(&g_devices->timebase.base));
         g_progress[PSG_TASK_PROTOCOL]++;

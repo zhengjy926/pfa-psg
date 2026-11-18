@@ -12,7 +12,7 @@
  */
 #include "drv/stm32g4/stm32_uart.h"
 
-#include "app/app_config.h"
+#include "shared/psg_config.h"
 #include "bsp/psg_v3/psg_board_config.h"
 #include "drv/stm32g4/stm32_timebase.h"
 #include "drv/uart/uart_ring.h"
@@ -81,11 +81,11 @@ static void rx_progress(stm32_uart_t *impl)
     impl->rx_last_pos = position;
 }
 
-static size_t uart_read_impl(void *context, uart_rx_byte_t *out, size_t capacity)
+static size_t uart_read_impl(void *context, uint8_t *values, uint32_t *timestamps, size_t capacity)
 {
     stm32_uart_t *impl = (stm32_uart_t *)context;
 
-    return uart_ring_pop(&impl->data, out, capacity);
+    return uart_ring_pop(&impl->data, values, timestamps, capacity);
 }
 
 static uint32_t uart_take_gaps_impl(void *context)
@@ -187,7 +187,6 @@ void stm32_uart_init(stm32_uart_t *impl)
 
     PSG_USART->CR1 = 0u;
     PSG_USART->BRR = (uint16_t)((PSG_MCU_CLOCK_HZ + (PSG_UART_BAUD / 2u)) / PSG_UART_BAUD);
-    PSG_USART->CR1 = USART_CR1_UE | USART_CR1_TE | USART_CR1_RE | USART_CR1_FIFOEN | USART_CR1_IDLEIE;
     PSG_USART->CR3 = USART_CR3_EIE | USART_CR3_DMAR | USART_CR3_DMAT;
 
     PSG_RX_DMAMUX->CCR = PSG_RX_REQUEST;
@@ -199,6 +198,9 @@ void stm32_uart_init(stm32_uart_t *impl)
 
     PSG_TX_DMAMUX->CCR = PSG_TX_REQUEST;
     PSG_TX_DMA->CCR = DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE;
+
+    /* Enable the USART only after the receive DMA is armed. */
+    PSG_USART->CR1 = USART_CR1_UE | USART_CR1_TE | USART_CR1_RE | USART_CR1_FIFOEN | USART_CR1_IDLEIE;
 
     NVIC_SetPriority(PSG_USART_IRQn, (uint32_t)PSG_IRQ_PRIO_COMMUNICATION);
     NVIC_SetPriority(PSG_RX_DMA_IRQn, (uint32_t)PSG_IRQ_PRIO_COMMUNICATION);

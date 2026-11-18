@@ -7,24 +7,26 @@
 TEST(uart_ring, pops_in_order_with_receive_timestamps)
 {
     uart_data_t data;
-    uart_rx_byte_t out[4];
+    uint8_t values[4];
+    uint32_t stamps[4];
 
     (void)memset(&data, 0, sizeof(data));
     uart_ring_push(&data, 0xAAu, 10u);
     uart_ring_push(&data, 0xBBu, 20u);
 
-    CHECK_EQ(uart_ring_pop(&data, out, 4u), 2u);
-    CHECK_EQ(out[0].value, 0xAAu);
-    CHECK_EQ(out[0].timestamp_us, 10u);
-    CHECK_EQ(out[1].value, 0xBBu);
-    CHECK_EQ(out[1].timestamp_us, 20u);
-    CHECK_EQ(uart_ring_pop(&data, out, 4u), 0u);
+    CHECK_EQ(uart_ring_pop(&data, values, stamps, 4u), 2u);
+    CHECK_EQ(values[0], 0xAAu);
+    CHECK_EQ(stamps[0], 10u);
+    CHECK_EQ(values[1], 0xBBu);
+    CHECK_EQ(stamps[1], 20u);
+    CHECK_EQ(uart_ring_pop(&data, values, stamps, 4u), 0u);
 }
 
 TEST(uart_ring, overflow_drops_oldest_and_preserves_surviving_timestamps)
 {
     uart_data_t data;
-    uart_rx_byte_t out[UART_RX_RING_BYTES];
+    uint8_t values[UART_RX_RING_BYTES];
+    uint32_t stamps[UART_RX_RING_BYTES];
     size_t index;
     size_t count;
 
@@ -33,12 +35,12 @@ TEST(uart_ring, overflow_drops_oldest_and_preserves_surviving_timestamps)
         uart_ring_push(&data, (uint8_t)(index & 0xFFu), (uint32_t)index);
     }
 
-    count = uart_ring_pop(&data, out, UART_RX_RING_BYTES);
+    count = uart_ring_pop(&data, values, stamps, UART_RX_RING_BYTES);
     CHECK_EQ(count, UART_RX_RING_BYTES - 1u);
-    CHECK_EQ(out[0].value, 0x01u);
-    CHECK_EQ(out[0].timestamp_us, 1u);
-    CHECK_EQ(out[count - 1u].value, (uint8_t)((UART_RX_RING_BYTES - 1u) & 0xFFu));
-    CHECK_EQ(out[count - 1u].timestamp_us, UART_RX_RING_BYTES - 1u);
+    CHECK_EQ(values[0], 0x01u);
+    CHECK_EQ(stamps[0], 1u);
+    CHECK_EQ(values[count - 1u], (uint8_t)((UART_RX_RING_BYTES - 1u) & 0xFFu));
+    CHECK_EQ(stamps[count - 1u], UART_RX_RING_BYTES - 1u);
     CHECK_EQ(uart_ring_take_gaps(&data), 1u);
     CHECK_EQ(uart_ring_take_gaps(&data), 0u);
 }

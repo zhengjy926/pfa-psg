@@ -38,6 +38,7 @@ add_executable(psg_v3.elf
     ${CMAKE_CURRENT_SOURCE_DIR}/../app/ecsp/ecsp_tx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../run/pulse_engine.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../run/run_config.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../shared/psg_bytes.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../svc/dedup/dedup.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../svc/fault/fault.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../svc/identity/identity.c

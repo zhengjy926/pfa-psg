@@ -13,7 +13,6 @@ MEMORY
 }
 
 _estack = ORIGIN(RAM) + LENGTH(RAM);
-_sidata = LOADADDR(.data);
 
 SECTIONS
 {
@@ -74,7 +73,7 @@ SECTIONS
         PROVIDE_HIDDEN(__fini_array_end = .);
     } > FLASH
 
-    .data : AT(_sidata)
+    .data :
     {
         . = ALIGN(4);
         _sdata = .;
@@ -82,7 +81,8 @@ SECTIONS
         *(.data*)
         . = ALIGN(4);
         _edata = .;
-    } > RAM
+    } > RAM AT > FLASH
+    _sidata = LOADADDR(.data);
 
     .bss :
     {

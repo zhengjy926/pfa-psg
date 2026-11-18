@@ -6,32 +6,29 @@
 
 static void feed(ecsp_rx_t *rx, const uint8_t *bytes, size_t count, uint32_t timestamp_us)
 {
-    uart_rx_byte_t batch[64];
+    uint8_t values[64];
+    uint32_t stamps[64];
     size_t offset = 0u;
 
     while (offset < count) {
         size_t chunk = count - offset;
         size_t index;
 
-        if (chunk > (sizeof(batch) / sizeof(batch[0]))) {
-            chunk = sizeof(batch) / sizeof(batch[0]);
+        if (chunk > (sizeof(values) / sizeof(values[0]))) {
+            chunk = sizeof(values) / sizeof(values[0]);
         }
         for (index = 0u; index < chunk; index++) {
-            batch[index].value = bytes[offset + index];
-            batch[index].timestamp_us = timestamp_us;
+            values[index] = bytes[offset + index];
+            stamps[index] = timestamp_us;
         }
-        (void)ecsp_rx_feed(rx, batch, chunk);
+        (void)ecsp_rx_feed(rx, values, stamps, chunk);
         offset += chunk;
     }
 }
 
 static void feed_byte(ecsp_rx_t *rx, uint8_t value, uint32_t timestamp_us)
 {
-    uart_rx_byte_t byte;
-
-    byte.value = value;
-    byte.timestamp_us = timestamp_us;
-    (void)ecsp_rx_feed(rx, &byte, 1u);
+    (void)ecsp_rx_feed(rx, &value, &timestamp_us, 1u);
 }
 
 TEST(ecsp_rx, parses_a_complete_in_time_frame)

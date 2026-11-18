@@ -48,13 +48,14 @@ typedef struct {
     uint8_t last_fault_word;
     bool reset_pending;
     bool clear_pending;
-    uint32_t frames_handled;
+    uint32_t overflow_seen;
 } psg_ecsp_t;
 
 void psg_ecsp_init(psg_ecsp_t *svc, const psg_ecsp_config_t *config, uint64_t now_us);
 
 /* UART task hand-off. */
-void psg_ecsp_feed(psg_ecsp_t *svc, const uart_rx_byte_t *bytes, size_t count, uint32_t gaps);
+void psg_ecsp_feed(psg_ecsp_t *svc, const uint8_t *values, const uint32_t *timestamps, size_t count,
+                   uint32_t gaps);
 
 /* Protocol task step: receive, dispatch, upload gating, transmit. */
 void psg_ecsp_step(psg_ecsp_t *svc, uint64_t now_us);

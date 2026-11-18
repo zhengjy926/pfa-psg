@@ -2,6 +2,9 @@
 
 #include <string.h>
 
+_Static_assert(sizeof(dedup_entry_t) <= PSG_DEDUP_ENTRY_BYTES,
+               "dedup entry must stay within the 16-byte budget (I-007)");
+
 static uint8_t ring_next(uint8_t index)
 {
     return (uint8_t)((index + 1u) % PSG_DEDUP_DEPTH);

@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "app/app_config.h"
+#include "shared/psg_config.h"
 
 typedef struct {
     uint8_t sequence;

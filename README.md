@@ -43,14 +43,21 @@ scatter file `bsp/psg_v3/psg_v3.sct`).  Batch build:
 
 ## Verification status
 
-- Host suite covers frame/CRC, receive resynchronisation and half-packet
-  timing, session/handshake/heartbeat, adjudication order, dedup, run state,
-  upload gating and 0x3C/0x11 reporting.
-- Both target builds link with 0 errors and 0 warnings.  The static RAM budget
-  in the map file is 21.4 KB (limit 32 KB, PRM-602).
+- Host suite (85 cases) covers frame/CRC, receive resynchronisation and
+  half-packet timing, session/handshake/heartbeat, adjudication order, dedup,
+  run state, upload gating, 0x3C/0x11 reporting and reset ordering.
+- Both target builds link with 0 errors and 0 warnings.  Static RAM is
+  21.8 KB (Keil) / 22.8 KB (GCC), under the 32 KB target and the PRM-602 limit;
+  the GCC image is 18.5 KB.
+- `cppcheck --addon=misra` reports zero rule findings on the project sources
+  (the nine `misra-config` notices come from FreeRTOS macros that cppcheck
+  cannot evaluate; a certified MISRA checker is still required for release).
 - Bench-only items remain pending: UART receive-timestamp error band (HW-05),
   PB9 blink and six-task scheduling on hardware, HRTIM/ADC/DAC chains (later
   tickets), and the IWDG supervision policy (E-008, later ticket).
+- #12 is implemented over the run-completion seam: `psg_run_complete()` is the
+  board/settlement entry point, and the HRTIM/ADC producers that call it land
+  with the waveform and settlement tickets (#8/#9).
 - The `timebase`/`uart` host doubles live in `tests/host/fakes/`; the production
   drivers are selected by the board static instances, not by a compile switch.
 

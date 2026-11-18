@@ -7,13 +7,14 @@
 
 static void fixture_pump_uart(psg_fixture_t *fixture)
 {
-    uart_rx_byte_t batch[64];
+    uint8_t values[64];
+    uint32_t stamps[64];
 
     for (;;) {
         uint32_t gaps = uart_take_gaps(&fixture->uart.base);
-        size_t count = uart_read(&fixture->uart.base, batch, sizeof(batch));
-        psg_ecsp_feed(&fixture->ecsp, batch, count, gaps);
-        if (count < sizeof(batch)) {
+        size_t count = uart_read(&fixture->uart.base, values, stamps, 64u);
+        psg_ecsp_feed(&fixture->ecsp, values, stamps, count, gaps);
+        if (count < 64u) {
             break;
         }
     }
