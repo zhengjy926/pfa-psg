@@ -29,56 +29,45 @@
 
 ## 1 引脚分配
 
-方向以 MCU 为参考，取值为「输入 / 输出 / 模拟 / 复用」，推断依据见脚注 ¹–⁵。复用功能(AF)：**只有 8 个复用引脚**（PA13、PA14、PA8、PA9、PC4、PC5、PA2、PA3）需要 AF，已按 STM32G474 通用映射填写并标注脚注 ⁸（**待与工程 `.ioc`/生成代码核对**）；输入、模拟与普通 GPIO 输出引脚的 AF 为「不适用」。原文 `GPIO output level` 与 `GPIO Pull-up/Pull-down` 的空缺已拆为「不适用」与「未使用」，判定规则见脚注 ⁷。**「上电默认」指固件完成 GPIO 初始化后的稳态**（输出电平或上下拉），不是硅片复位瞬间的状态；复位后除调试脚外所有 GPIO 为浮空输入、输出数据寄存器为 0。对安全相关输出（杆驱动、过流锁存复位）不得依赖本列，须由硬件上下拉兜底。归属需求取自 [SRS §7 追溯矩阵](../srs/pulse-gen-firmware.md)⁶。
+方向以 MCU 为参考，取值为「输入 / 输出 / 模拟 / 复用」。复用功能(AF)：只有 8 个复用引脚需要 AF，已按 STM32G474 通用映射填写（AF0/AF7/AF13），**待与工程 `.ioc` 或生成代码核对**；其余引脚为「不适用」。「上电默认电平」指固件完成 GPIO 初始化后、输出脚所驱动的静态电平；非输出引脚（输入、模拟、复用）一律记「不适用」。归属需求取自 [SRS §7 追溯矩阵](../srs/pulse-gen-firmware.md)。
 
 原文的固件标识符未登记（§3.1），保留如下，仅用于回溯，不参与术语：
 
 - `GPIO Label`：PB4 `PULSE_START`、PB6 `TRIN`、PG7 `OCP_N`、PG8 `OCP_P`、PB5 `PULSE_BUSY`、PB9 `LED`、PD8–PD13 `POLE_F`–`POLE_A`、PG9 `OCP_RST`。
 - `Signal on Pin`：PF0 `RCC_OSC_IN`、PF1 `RCC_OSC_OUT`、PA13 `SYS_JTMS-SWDIO`、PA14 `SYS_JTCK-SWCLK`、PA0 `COMP3_INP; ADC1_IN1`、PA1 `COMP1_INP; ADC2_IN2`、PA8 `HRTIM1_CHA1`、PA9 `HRTIM1_CHA2`、PB4 `GPIO_EXTI4`、PB6 `GPIO_EXTI6`、PG7 `GPIO_EXTI7`、PG8 `GPIO_EXTI8`、PB5 / PB9 / PD8–PD13 / PG9 均 `GPIO_Output`、PC4 `USART1_TX`、PC5 `USART1_RX`、PA2 `USART2_TX`、PA3 `USART2_RX`。
 
-| 信号 | 引脚 | 方向 | 复用功能(AF) | 上电默认 | 归属需求 |
+| 信号 | 引脚 | 方向 | 复用功能(AF) | 上电默认电平 | 归属需求 |
 | --- | --- | --- | --- | --- | --- |
-| HSE 晶振输入 | PF0 | 输入⁵ | 不适用 | 不适用 | N-005 |
-| HSE 晶振输出 | PF1 | 输出⁵ | 不适用 | 不适用 | N-005 |
-| SWD 调试数据（SWDIO） | PA13 | 复用² | AF0 ⁸ | 不适用 | I-029 |
-| SWD 调试时钟（SWCLK） | PA14 | 复用² | AF0 ⁸ | 不适用 | I-029 |
-| 正通道电流采样 | PA0 | 模拟¹ | 不适用 | 不适用 | F-035 |
-| 负通道电流采样 | PA1 | 模拟¹ | 不适用 | 不适用 | F-035 |
-| 正通道脉冲输出 | PA8 | 复用² | AF13 ⁸ | 未使用（由 HRTIM 驱动） | F-022 |
-| 负通道脉冲输出 | PA9 | 复用² | AF13 ⁸ | 未使用（由 HRTIM 驱动） | F-022 |
-| 端口启停输入 | PB4 | 输入³ | 不适用 | 下拉 | F-003、F-012 |
-| R 波输入 | PB6 | 输入³ | 不适用 | 下拉 | F-006、F-009、F-031 |
-| 负通道过流锁存 | PG7 | 输入³ | 不适用 | 下拉 | E-001、E-003、E-012 |
-| 正通道过流锁存 | PG8 | 输入³ | 不适用 | 下拉 | E-001、E-003、E-012 |
-| 运行指示 | PB5 | 输出⁴ | 不适用 | 低电平 | F-014 |
-| 板载 LED | PB9 | 输出⁴ | 不适用 | 高电平 | F-015 |
-| 杆 F 驱动（MOSFET） | PD8 | 输出⁴ | 不适用 | 低电平 | F-027～F-034 |
-| 杆 E 驱动（MOSFET） | PD9 | 输出⁴ | 不适用 | 低电平 | F-027～F-034 |
-| 杆 D 驱动（MOSFET） | PD10 | 输出⁴ | 不适用 | 低电平 | F-027～F-034 |
-| 杆 C 驱动（MOSFET） | PD11 | 输出⁴ | 不适用 | 低电平 | F-027～F-034 |
-| 杆 B 驱动（MOSFET） | PD12 | 输出⁴ | 不适用 | 低电平 | F-027～F-034 |
-| 杆 A 驱动（MOSFET） | PD13 | 输出⁴ | 不适用 | 低电平 | F-027～F-034 |
-| 过流锁存复位 | PG9 | 输出⁴ | 不适用 | 低电平 | E-003 |
-| 单板调试版协议口 TX | PC4 | 复用² | AF7 ⁸ | 未使用（由 USART 驱动） | I-027 |
-| 单板调试版协议口 RX | PC5 | 复用² | AF7 ⁸ | 未使用（由 USART 驱动） | I-027 |
-| 发布版协议口 TX | PA2 | 复用² | AF7 ⁸ | 未使用（由 USART 驱动） | I-001～I-025 |
-| 发布版协议口 RX | PA3 | 复用² | AF7 ⁸ | 未使用（由 USART 驱动） | I-001～I-025 |
+| HSE 晶振输入 | PF0 | 输入 | 不适用 | 不适用 | N-005 |
+| HSE 晶振输出 | PF1 | 输出 | 不适用 | 不适用 | N-005 |
+| SWD 调试数据（SWDIO） | PA13 | 复用 | AF0 | 不适用 | I-029 |
+| SWD 调试时钟（SWCLK） | PA14 | 复用 | AF0 | 不适用 | I-029 |
+| 正通道电流采样 | PA0 | 模拟 | 不适用 | 不适用 | F-035 |
+| 负通道电流采样 | PA1 | 模拟 | 不适用 | 不适用 | F-035 |
+| 正通道脉冲输出 | PA8 | 复用 | AF13 | 不适用 | F-022 |
+| 负通道脉冲输出 | PA9 | 复用 | AF13 | 不适用 | F-022 |
+| 端口启停输入 | PB4 | 输入 | 不适用 | 不适用 | F-003、F-012 |
+| R 波输入 | PB6 | 输入 | 不适用 | 不适用 | F-006、F-009、F-031 |
+| 负通道过流锁存 | PG7 | 输入 | 不适用 | 不适用 | E-001、E-003、E-012 |
+| 正通道过流锁存 | PG8 | 输入 | 不适用 | 不适用 | E-001、E-003、E-012 |
+| 运行指示 | PB5 | 输出 | 不适用 | 低电平 | F-014 |
+| 板载 LED | PB9 | 输出 | 不适用 | 高电平 | F-015 |
+| 杆 F 驱动（MOSFET） | PD8 | 输出 | 不适用 | 低电平 | F-027～F-034 |
+| 杆 E 驱动（MOSFET） | PD9 | 输出 | 不适用 | 低电平 | F-027～F-034 |
+| 杆 D 驱动（MOSFET） | PD10 | 输出 | 不适用 | 低电平 | F-027～F-034 |
+| 杆 C 驱动（MOSFET） | PD11 | 输出 | 不适用 | 低电平 | F-027～F-034 |
+| 杆 B 驱动（MOSFET） | PD12 | 输出 | 不适用 | 低电平 | F-027～F-034 |
+| 杆 A 驱动（MOSFET） | PD13 | 输出 | 不适用 | 低电平 | F-027～F-034 |
+| 过流锁存复位 | PG9 | 输出 | 不适用 | 低电平 | E-003 |
+| 单板调试版协议口 TX | PC4 | 复用 | AF7 | 不适用 | I-027 |
+| 单板调试版协议口 RX | PC5 | 复用 | AF7 | 不适用 | I-027 |
+| 发布版协议口 TX | PA2 | 复用 | AF7 | 不适用 | I-001～I-025 |
+| 发布版协议口 RX | PA3 | 复用 | AF7 | 不适用 | I-001～I-025 |
 
-¹ 依据：原文 `GPIO mode` = `Analog`。
+> 两个被「上电默认电平」列略去、但仍需实现的硬件事实：
+> - 四个 EXTI 输入（PB4、PB6、PG7、PG8）原文配置为**内部下拉**（`GPIO Pull-up/Pull-down` = `Pull-down`）；
+> - 复位到初始化之间是浮空窗口：复位后除调试脚外所有 GPIO 为浮空输入、输出数据寄存器为 0。安全相关输出（杆驱动 PD8–PD13、过流锁存复位 PG9）**必须由硬件上下拉兜底**，不能只依赖初始化后的「低电平」。
 
-² 依据：原文 `GPIO mode` = `Alternate Function Push Pull`；PA13 / PA14 的原文 `GPIO mode` 未给出，依据 `Signal on Pin` = `SYS_JTMS-SWDIO` / `SYS_JTCK-SWCLK`（调试复用，双向）记为复用。
-
-³ 依据：原文 `GPIO mode` = `External Interrupt Mode with Rising/Falling edge trigger detection`（PB4）或 `External Interrupt Mode with Rising edge trigger detection`（PB6 / PG7 / PG8）。
-
-⁴ 依据：原文 `GPIO mode` = `Output Push Pull`。
-
-⁵ 依据：原文 `GPIO mode` 未给出；依据 `Signal on Pin` = `RCC_OSC_IN`（PF0）、`RCC_OSC_OUT`（PF1）记为输入、输出。
-
-⁶ 归属需求取自 [SRS §7](../srs/pulse-gen-firmware.md)；该矩阵把 PD13–PD8 合并为 `F-027～F-034`，6 个引脚对 8 个需求 ID，粒度过粗，见 [Q-023](../OPEN_QUESTIONS.md)。
-
-⁷ 原文 `GPIO Pull-up/Pull-down`：EXTI 四行为 `Pull-down`，其余行为 `No pull-up and no pull-down`。原文 `GPIO output level` 对输入、模拟、复用引脚未给出取值，本表按「不适用」（RCC、SWD、ADC）或「未使用」（HRTIM、USART，电平由外设决定）处理；EXTI 四行的输出电平同属不适用，本列只记有效的下拉默认。另注意：硅片复位态与初始化后不同——复位后所有 GPIO（除 PA13 上拉、PA14 下拉）为浮空输入、输出数据寄存器为 0；本列只描述初始化后的稳态，不覆盖复位到初始化之间的浮空窗口。
-
-⁸ AF 编号按 STM32G474 通用映射预填：`AF0` = SYS（SWD），`AF7` = USART1/USART2，`AF13` = HRTIM1。依据：ST 应用笔记 AN4539（STM32G4 的 HRTIM 复用为 AF13）、STM32G4 HAL 的 `GPIO_AF13_HRTIM1`、mbed-os STM32G4 pinmap（`GPIO_AF7_USART1` / `GPIO_AF7_USART2`）。**尚未与本工程 CubeMX 配置核对**，核对请对照 `.ioc` 或生成的 `stm32g4xx_hal_msp.c`；确认后删除本脚注并关闭 Q-019。
 
 ## 2 外设配置
 
@@ -296,7 +285,7 @@
 
 | 缺口 | 影响 | 现状处置 |
 | --- | --- | --- |
-| Q-019：缺 AF 复用编号 | 无法生成 AFR 值 | §1 已按 STM32G474 通用映射填写 8 个复用引脚（AF0/AF7/AF13，脚注 ⁸），状态为「已填、待核对」；核对依据为工程 `.ioc` 或 `stm32g4xx_hal_msp.c` 中的 `GPIO_AFx_*` |
+| Q-019：AF 编号待核对 | 若与工程配置不符，会生成错误的 AFR 值 | §1 已按 STM32G474 通用映射填写 8 个复用引脚（AF0/AF7/AF13），状态为「已填、待核对」；核对依据为工程 `.ioc` 或 `stm32g4xx_hal_msp.c` 中的 `GPIO_AFx_*` |
 | Q-020：时基基准（已补） | 周期、突发预分频、ADC 采样时间换算 | 基准 fHRTIM 170 MHz（PRM-707）、ADC 48.57 MHz（PRM-708）；§2.1、§2.4.1、§2.4.5 已补派生值（257 ns / 385.5 µs / 332 kHz） |
 | Q-029：NVIC 表缺 EXTI4 | PB4 中断无法配置 | §2.8 补 EXTI4 行并标 `[待确认 Q-029]` |
 | Q-023：引脚追溯粒度过粗 | 6 个引脚对 8 个需求 ID | §1 脚注 ⁶ 保留原状 |
