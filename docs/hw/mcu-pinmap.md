@@ -38,7 +38,7 @@ STM32G474QET6 可用 `DBANK` 选项位配置双 Bank 模式。该模式下每个
 | 负通道电流采样 | PA1 | 模拟 | — | ADC2_IN2；COMP1 INP | F-035、E-001 | 0x31、0x3C |
 | 正通道脉冲输出 | PA8 | 复用 AF13 | 见 §2.4 | HRTIM1_CHA1 | F-022 | 0x30、0x34 |
 | 负通道脉冲输出 | PA9 | 复用 AF13 | 见 §2.4 | HRTIM1_CHA2 | F-022 | 0x30、0x34 |
-| 端口启停输入 | PB4 | 输入 | — | EXTI4，双边沿，内部下拉 | F-003、F-012 | 0x30、0x3E；可选硬件联动（AF13=HRTIM1_EEV7）见 §2.8 |
+| 端口启停输入 | PB4 | 复用（AF13） | — | HRTIM1_EEV7（引脚源、双边沿、滤波 0000）；输出复位 + CPT1 捕获 | F-003、F-012 | 0x30、0x3E；配置与门控见 §2.8 |
 | R 波输入 | PB6 | 输入 | — | EXTI6，内部下拉 | F-006、F-010、F-031 | 0x32、0x36/0x37 |
 | 运行指示 | PB5 | 输出 | 低 | GPIO | F-014 | — |
 | 板载 LED | PB9 | 输出 | 高 | GPIO | F-015 | — |
@@ -161,7 +161,7 @@ HRTIM 基准时钟 fHRTIM = SYSCLK（PRM-707）。定时器 A/B 计数时钟按 
 | 参数 | 值 | 单位 | 备注 |
 | --- | --- | --- | --- |
 | SYSFLT / FLT4 / FLT5 | `HRTIM1_FLT_IRQn` | — | FLT4 对应负通道，FLT5 对应正通道。优先级见 §2.8 |
-| TIMA 重复（REP） | `HRTIM1_TIMA_IRQn` | — | 优先级见 §2.8 |
+| TIMA 重复（REP） | `HRTIM1_TIMA_IRQn` | — | 串结束事件；同线承载 CPT1 端口启停捕获（EEV7），优先级见 §2.8 |
 
 ### 2.5 IWDG
 
@@ -218,7 +218,7 @@ USART RX 表项为参考配置。PSG 优先验证循环 DMA 接收，并启用 U
 
 | 中断 | 抢占优先级 | 备注 |
 | --- | --- | --- |
-| EXTI4（PB4 端口启停输入） | PRM-730 | 双边沿，归属 F-003、F-012 |
+| HRTIM1_TIMA（CPT1：EEV7 端口启停捕获） | PRM-730 | 串结束与端口事件同线，归属 F-003、F-012、F-038 |
 | EXTI9_5（PB6 / PG7 / PG8） | PRM-730 | PB6 / PG7 / PG8 对应 EXTI6 / EXTI7 / EXTI8 |
 | HRTIM1_FLT | PRM-730 | SYSFLT / FLT4 / FLT5，见 §2.4.6 |
 | HRTIM1_TIMA | PRM-730 | TIMA 重复事件，见 §2.4.6 |
@@ -227,6 +227,4 @@ USART RX 表项为参考配置。PSG 优先验证循环 DMA 接收，并启用 U
 | USART2 | PRM-729 | — |
 | SysTick | PRM-728 | — |
 
-EXTI4 可抢占通信与 DMA 中断。同级中断彼此不抢占，同时挂起时按 IRQ 编号处理。过流停波唯一由 HRTIM 硬件故障态完成，ISR 只捕捉故障来源与样本证据、不写输出寄存器；过流锁存停波独立于 NVIC 调度。端口启停应走短且有界的中断路径，端口停波最坏延迟 = 中断压栈 + 同级最长 ISR WCET + EXTI4 处理 WCET；各保护类 ISR WCET 预算与 configMAX_SYSCALL_INTERRUPT_PRIORITY = 4 见 PRM-727，验收见 SRS F-012、E-001、T-005。[ST PM0214 §2.3.5–§2.3.6](https://www.st.com/resource/en/programming_manual/pm0214-stm32-cortexm4-mcus-and-mpus-programming-manual-stmicroelectronics.pdf)
-
-可选硬件联动（RM0440 已核实）：PB4 可复用为 HRTIM1_EEV7（AF13），经 EXTEVNT7 直接复位两路输出，硬件停波延迟 typ 56 ns / max 66 ns（DS12288 Table 62）。代价：AF13 与 EXTI4 输入模式互斥，端口停止事件捕捉改经 HRTIM EEV 中断完成，运行状态更新路径随改；EEV7 不进故障通道（RM0440 Table 228，仅 EEV1–6 可接故障输入）。默认仍采用 EXTI4 ISR 方案，EEV7 作为可选升级保留（RM0440 Table 223）。
+HRTIM 保护类中断可抢占通信与 DMA 中断。同级中断彼此不抢占，同时挂起时按 IRQ 编号处理。过流停波唯一由 HRTIM 硬件故障态完成，ISR 只捕捉故障来源与样本证据、不写输出寄存器；过流锁存停波独立于 NVIC 调度。端口停波已升级为硬件联动：PB4 复用 AF13=HRTIM1_EEV7（引脚源、双边沿、滤波 0000，RM0440 §28.3.8、§28.5.69），EEV7 经 EXTEVNT7 直接复位两路输出（HRTIM_RSTx1R/RSTx2R），停波延迟 typ 56 / max 66 ns（DS12288 Table 62，PRM-513），不依赖中断；端口停止（负向过渡）与端口启动（正向过渡）由 EEV7→TIMA CPT1 捕获，经 HRTIM1_TIMA_IRQn 入队（ISR 读 PB4 电平判向），事件捕捉延迟不影响停波。启停输入源为协议（0x3E）时屏蔽 EEV7 输出复位与捕获。过流故障通路（FLT4/5←COMP1/3）与 EEV7 正交、互不占用。各保护类 ISR WCET 预算与 configMAX_SYSCALL_INTERRUPT_PRIORITY = 4 见 PRM-727，验收见 SRS F-012、E-001、T-005。[ST PM0214 §2.3.5–§2.3.6](https://www.st.com/resource/en/programming_manual/pm0214-stm32-cortexm4-mcus-and-mpus-programming-manual-stmicroelectronics.pdf)

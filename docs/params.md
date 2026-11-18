@@ -158,6 +158,7 @@
 | PRM-510 | 过流锁存 → 停波 | 10 | µs | 固定 | E-001、T-005 |
 | PRM-511 | 杆对同步时长 | 1 | µs | 固定 | — |
 | PRM-512 | 锁存清除确认等待 | 5 | ms | 固定 | 上电自检与 0x3D 执行过流锁存复位脉冲后、重读锁存电平前的等待。SRS E-003、I-021 |
+| PRM-513 | 端口停波（EEV7 硬件）延迟 | typ 56 / max 66 | ns | 硬件特性 | DS12288 Table 62（同步模式、滤波关，fHRTIM=170 MHz）；SRS F-012、T-005 |
 ## 6xx 系统非功能
 
 | ID | 参数 | 值 | 单位 | 性质 | 依据 |
@@ -204,7 +205,7 @@
 | PRM-727 | 中断优先级（汇总） | 按 PRM-728、PRM-729、PRM-730 | — | 派生 | [MCU NVIC 配置](hw/mcu-pinmap.md#28-nvic)、SRS N-004；configMAX_SYSCALL_INTERRUPT_PRIORITY = 4（0–3 段预留不用），保护类 ISR 可调用 FromISR API |
 | PRM-728 | 中断优先级：SysTick | 15 | — | 固定 | — |
 | PRM-729 | 中断优先级：DMA1 / USART1 / USART2 | 5 | — | 固定 | — |
-| PRM-730 | 中断优先级：EXTI4 / EXTI9_5 / HRTIM1_FLT / HRTIM1_TIMA | 4 | — | 固定 | EXTI4 对应 PB4 端口启停输入 |
+| PRM-730 | 中断优先级：HRTIM1_TIMA / EXTI9_5 / HRTIM1_FLT | 4 | — | 固定 | HRTIM1_TIMA 承载串结束与 EEV7 端口启停捕获（CPT1）；PB4 不再使用 EXTI4 |
 | PRM-731 | 器件 Flash 容量 | 512 | KB | 固定 | 需求上限为 PRM-601 的 256 KB |
 | PRM-732 | 器件 RAM 容量 | 128 | KB | 固定 | 需求上限为 PRM-602 的 64 KB |
 | PRM-733 | ADC 采样通道 | ADC1：CH1（IN1）；ADC2：CH2（IN2） | — | 固定 | — |

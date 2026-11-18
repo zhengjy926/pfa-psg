@@ -28,4 +28,11 @@
 ## 5. 台架行动项（已随文档登记）
 
 - T-005 锁存化重验；T-007 L2 全范围复测；L1 相位锚定验证；NDTR 快照与最后转换完成同拍竞态；REPR 转移/重载同拍次序（最坏再滞后一串）。
-- 可选升级（非默认）：PB4→HRTIM1_EEV7 硬件端口停波（66ns）；L3 仅单 ADC 场景备选。
+- 已采纳升级：PB4→HRTIM1_EEV7 硬件端口停波（PRM-513，typ56/max66ns）；L3 仅单 ADC 场景备选。
+
+## 6. EEV7 硬件端口停波升级（2026-11-19 追加裁决）
+
+- PB4 复用 AF13=HRTIM1_EEV7（引脚源、双边沿、滤波 0000）；EEV7→EXTEVNT7 复位双路输出，停波延迟 typ 56/max 66 ns（DS12288 Table 62），不依赖中断。
+- 端口事件（启动正向/停止负向）由 EEV7→TIMA CPT1 捕获经 HRTIM1_TIMA_IRQn 入队，ISR 按 PB4 电平判向；事件捕捉延迟不影响停波。
+- 协议源（0x3E）时屏蔽 EEV7 复位与捕获；与过流故障通路（FLT4/5←COMP1/3）正交。
+- 落点：pinmap §1/§2.4.6/§2.8、params PRM-513/730、SRS F-003/F-012/T-005、firmware-architecture §1/§5/场景3、pulse-engine。
