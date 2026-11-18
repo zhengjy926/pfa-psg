@@ -29,7 +29,7 @@
 
 ## 1 引脚分配
 
-方向以 MCU 为参考，取值为「输入 / 输出 / 模拟 / 复用」，推断依据见脚注 ¹–⁵。复用功能(AF)：**只有 8 个复用引脚**（PA13、PA14、PA8、PA9、PC4、PC5、PA2、PA3）需要 AF，已按 STM32G474 通用映射填写并标注脚注 ⁸（**待与工程 `.ioc`/生成代码核对**）；输入、模拟与普通 GPIO 输出引脚的 AF 为「不适用」。原文 `GPIO output level` 与 `GPIO Pull-up/Pull-down` 的空缺已拆为「不适用」与「未使用」，判定规则见脚注 ⁷。归属需求取自 [SRS §7 追溯矩阵](../srs/pulse-gen-firmware.md)⁶。
+方向以 MCU 为参考，取值为「输入 / 输出 / 模拟 / 复用」，推断依据见脚注 ¹–⁵。复用功能(AF)：**只有 8 个复用引脚**（PA13、PA14、PA8、PA9、PC4、PC5、PA2、PA3）需要 AF，已按 STM32G474 通用映射填写并标注脚注 ⁸（**待与工程 `.ioc`/生成代码核对**）；输入、模拟与普通 GPIO 输出引脚的 AF 为「不适用」。原文 `GPIO output level` 与 `GPIO Pull-up/Pull-down` 的空缺已拆为「不适用」与「未使用」，判定规则见脚注 ⁷。**「上电默认」指固件完成 GPIO 初始化后的稳态**（输出电平或上下拉），不是硅片复位瞬间的状态；复位后除调试脚外所有 GPIO 为浮空输入、输出数据寄存器为 0。对安全相关输出（杆驱动、过流锁存复位）不得依赖本列，须由硬件上下拉兜底。归属需求取自 [SRS §7 追溯矩阵](../srs/pulse-gen-firmware.md)⁶。
 
 原文的固件标识符未登记（§3.1），保留如下，仅用于回溯，不参与术语：
 
@@ -76,7 +76,7 @@
 
 ⁶ 归属需求取自 [SRS §7](../srs/pulse-gen-firmware.md)；该矩阵把 PD13–PD8 合并为 `F-027～F-034`，6 个引脚对 8 个需求 ID，粒度过粗，见 [Q-023](../OPEN_QUESTIONS.md)。
 
-⁷ 原文 `GPIO Pull-up/Pull-down`：EXTI 四行为 `Pull-down`，其余行为 `No pull-up and no pull-down`。原文 `GPIO output level` 对输入、模拟、复用引脚未给出取值，本表按「不适用」（RCC、SWD、ADC）或「未使用」（HRTIM、USART，电平由外设决定）处理；EXTI 四行的输出电平同属不适用，本列只记有效的下拉默认。
+⁷ 原文 `GPIO Pull-up/Pull-down`：EXTI 四行为 `Pull-down`，其余行为 `No pull-up and no pull-down`。原文 `GPIO output level` 对输入、模拟、复用引脚未给出取值，本表按「不适用」（RCC、SWD、ADC）或「未使用」（HRTIM、USART，电平由外设决定）处理；EXTI 四行的输出电平同属不适用，本列只记有效的下拉默认。另注意：硅片复位态与初始化后不同——复位后所有 GPIO（除 PA13 上拉、PA14 下拉）为浮空输入、输出数据寄存器为 0；本列只描述初始化后的稳态，不覆盖复位到初始化之间的浮空窗口。
 
 ⁸ AF 编号按 STM32G474 通用映射预填：`AF0` = SYS（SWD），`AF7` = USART1/USART2，`AF13` = HRTIM1。依据：ST 应用笔记 AN4539（STM32G4 的 HRTIM 复用为 AF13）、STM32G4 HAL 的 `GPIO_AF13_HRTIM1`、mbed-os STM32G4 pinmap（`GPIO_AF7_USART1` / `GPIO_AF7_USART2`）。**尚未与本工程 CubeMX 配置核对**，核对请对照 `.ioc` 或生成的 `stm32g4xx_hal_msp.c`；确认后删除本脚注并关闭 Q-019。
 
