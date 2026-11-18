@@ -1,8 +1,8 @@
 # MCU 外设与引脚配置
 
-> 本文记录信号到芯片、外设、引脚复用、启动默认电平和中断的绑定。行为和验收见 [SRS](../srs/pulse-gen-firmware.md)，量值见 [参数登记表](../params.md#7xx-mcu)。仍需硬件或工程来源的配置见 [文档疑点](../ambiguities.md#架构与硬件输入)。
+> 本文记录信号到芯片、外设、引脚复用、启动默认电平和中断的绑定。行为和验收见 [SRS](../srs/pulse-gen-firmware.md)，量值见 [参数登记表](../params.md#7xx-mcu)。仍需确认的硬件配置见 [文档疑点](../ambiguities.md#硬件输入)。
 
-CubeMX（LL/HAL）参考工程用于核对硬件配置。现有配置文档的实现目标是用 Zephyr 设备树与驱动表达这些绑定。
+CubeMX（LL/HAL）参考工程用于核对硬件配置。
 
 ## 0 芯片与时钟
 
@@ -27,15 +27,10 @@ CubeMX（LL/HAL）参考工程用于核对硬件配置。现有配置文档的�
 
 方向以 MCU 为参考，取值为「输入 / 输出 / 模拟 / 复用」。复用功能(AF)：只有 8 个复用引脚需要 AF，已按 STM32G474 通用映射填写（AF0/AF7/AF13），并与 CubeMX 参考工程的 `LL_GPIO_AF_13` 核对一致；其余引脚为「不适用」。「上电默认电平」指固件完成 GPIO 初始化后、输出脚所驱动的静态电平；非输出引脚（输入、模拟、复用）一律记「不适用」。归属需求在 [SRS](../srs/pulse-gen-firmware.md) 按 ID 定位，命令关联见 §3。
 
-参考工程（CubeMX）使用的固件标识符如下，供迁移对照，不参与术语：
-
-- `GPIO Label`：PB4 `PULSE_START`、PB6 `TRIN`、PG7 `OCP_N`、PG8 `OCP_P`、PB5 `PULSE_BUSY`、PB9 `LED`、PD8–PD13 `POLE_F`–`POLE_A`、PG9 `OCP_RST`。
-- `Signal on Pin`：PF0 `RCC_OSC_IN`、PF1 `RCC_OSC_OUT`、PA13 `SYS_JTMS-SWDIO`、PA14 `SYS_JTCK-SWCLK`、PA0 `COMP3_INP; ADC1_IN1`、PA1 `COMP1_INP; ADC2_IN2`、PA8 `HRTIM1_CHA1`、PA9 `HRTIM1_CHA2`、PB4 `GPIO_EXTI4`、PB6 `GPIO_EXTI6`、PG7 `GPIO_EXTI7`、PG8 `GPIO_EXTI8`、PB5 / PB9 / PD8–PD13 / PG9 均 `GPIO_Output`、PC4 `USART1_TX`、PC5 `USART1_RX`、PA2 `USART2_TX`、PA3 `USART2_RX`。
-
 | 信号 | 引脚 | 方向 | 复用功能(AF) | 上电默认电平 | 归属需求 |
 | --- | --- | --- | --- | --- | --- |
-| HSE 晶振输入 | PF0 | 输入 | 不适用 | 不适用 | N-005 |
-| HSE 晶振输出 | PF1 | 输出 | 不适用 | 不适用 | N-005 |
+| HSE 晶振输入 | PF0 | 输入 | 不适用 | 不适用 | — |
+| HSE 晶振输出 | PF1 | 输出 | 不适用 | 不适用 | — |
 | SWD 调试数据（SWDIO） | PA13 | 复用 | AF0 | 不适用 | I-029 |
 | SWD 调试时钟（SWCLK） | PA14 | 复用 | AF0 | 不适用 | I-029 |
 | 正通道电流采样 | PA0 | 模拟 | 不适用 | 不适用 | F-035 |
@@ -110,6 +105,7 @@ CubeMX（LL/HAL）参考工程用于核对硬件配置。现有配置文档的�
 | 参数 | 值 | 单位 | 备注 |
 | --- | --- | --- | --- |
 | 输出 | TA1 → PA8；TA2 → PA9 | — | §1；归属 F-022 |
+| 输出极性 | 两路均为高电平有效 | — | `HRTIM_OUTAR.POL1 = 0`、`POL2 = 0` |
 | 模式 | 连续（CONTINUOUS） | — | — |
 | 预分频 | PRM-713 | — | `MUL2` |
 | 周期 | PRM-714 | 计数 | 派生：65534 个计数（PER+1）@ CK_HRTIM 340 MHz（`MUL2`）≈ **192.7 µs**；由 PRM-713、PRM-707 推得 |
@@ -117,9 +113,12 @@ CubeMX（LL/HAL）参考工程用于核对硬件配置。现有配置文档的�
 | 比较值 | PRM-715 | 计数 | 初值 65533（占位）。实际脉宽在运行时改写比较值：200–5000 ns 对应 68–1701 个 2.94 ns 计数（PRM-307、PRM-308） |
 | 置位源 | TA1 ← CMP1；TA2 ← CMP3 | — | — |
 | 复位源 | TA1 ← CMP2；TA2 ← PER | — | — |
-| 空闲电平 | IDLE | — | 具体电平（高 / 低）`[待补]` |
+| 空闲电平 | 两路均为低电平（INACTIVE） | — | `HRTIM_OUTAR.IDLES1 = 0`、`IDLES2 = 0` |
+| 突发模式空闲控制 | 两路均响应突发控制器的空闲请求 | — | `HRTIM_OUTAR.IDLEM1 = 1`、`IDLEM2 = 1` |
 | 重复计数 | PRM-716 | — | 更新禁用 |
 | 预装载 | 禁用 | — | — |
+
+HRTIM 完成初始化后，脉冲引擎处于空闲态时 PA8、PA9 应保持低电平。HRTIM 根据输出极性将 `INACTIVE` 映射到引脚电平。软件进入 HRTIM 输出空闲态或突发控制器请求空闲时，应用上表的空闲电平。故障输出电平见 §2.4.3。[ST RM0440 §28.3.14](https://www.st.com/resource/en/reference_manual/rm0440-stm32g4-series-advanced-armbased-32-bit-mcus-stmicroelectronics.pdf)
 
 #### 2.4.2 定时器 B（TB，无输出）
 
@@ -140,7 +139,7 @@ CubeMX（LL/HAL）参考工程用于核对硬件配置。现有配置文档的�
 | 滤波 | 无 | — | — |
 | 复位模式 | 条件复位 | — | — |
 | 计数器值 | PRM-717 | 计数 | — |
-| 输出电平 | INACTIVE | — | — |
+| 故障输出电平 | 两路均为低电平（INACTIVE） | — | `HRTIM_OUTAR.FAULT1[1:0] = 0b10`、`FAULT2[1:0] = 0b10` |
 
 #### 2.4.4 ADC 触发
 
@@ -185,7 +184,7 @@ CubeMX（LL/HAL）参考工程用于核对硬件配置。现有配置文档的�
 | TX 引脚 | USART1：PC4；USART2：PA2 | — | §1；`Signal on Pin` = `USART1_TX` / `USART2_TX` |
 | RX 引脚 | USART1：PC5；USART2：PA3 | — | §1；`Signal on Pin` = `USART1_RX` / `USART2_RX` |
 | 用途 | USART1：单板调试版协议口；USART2：发布版协议口 | — | 归属 I-027 / I-001～I-025 |
-| 选用方式 | PRM-737 | — | 宏名与默认项由本仓库约定；Zephyr 侧用 Kconfig choice 表达 |
+| 选用方式 | PRM-737 | — | 编译期选择 |
 
 #### 2.6.2 参数配置（两路一致）
 
@@ -224,20 +223,20 @@ CubeMX（LL/HAL）参考工程用于核对硬件配置。现有配置文档的�
 
 ### 2.8 NVIC
 
-抢占优先级分组见 PRM-727：全部为抢占优先级，无子优先级，故「子优先级」列为 `—`。下表各行按分档排列；PRM-728 为汇总登记，逐项见 PRM-729～PRM-731¹。
+优先级分组见 PRM-727，使用 4 位抢占优先级，数字越小越优先。各档汇总见 PRM-728。
 
 | 中断 | 抢占优先级 | 子优先级 | 备注 |
 | --- | --- | --- | --- |
-| SysTick | PRM-729 | — | — |
+| EXTI4（PB4 端口启停输入） | PRM-731 | — | 双边沿，归属 F-003、F-012 |
+| EXTI9_5（PB6 / PG7 / PG8） | PRM-731 | — | PB6 / PG7 / PG8 对应 EXTI6 / EXTI7 / EXTI8 |
+| HRTIM1_FLT | PRM-731 | — | SYSFLT / FLT4 / FLT5，见 §2.4.6 |
+| HRTIM1_TIMA | PRM-731 | — | TIMA 重复事件，见 §2.4.6 |
 | DMA1_Channel1–6 | PRM-730 | — | — |
 | USART1 | PRM-730 | — | — |
 | USART2 | PRM-730 | — | — |
-| EXTI9_5（PB6 / PG7 / PG8） | PRM-731 | — | PB6 / PG7 / PG8 对应 EXTI6 / EXTI7 / EXTI8 |
-| EXTI4（PB4 端口启停输入） | `[待补]` | — | NVIC 表中无此行；PB4 见 §1；优先级需在工程 / Zephyr 设备树中确认 |
-| HRTIM1_FLT | PRM-731 | — | 与 §2.4.6 同源；CubeMX 参考工程抢占 4、子优先级 0 |
-| HRTIM1_TIMA | PRM-731 | — | 与 §2.4.6 同源；CubeMX 参考工程抢占 4、子优先级 0 |
+| SysTick | PRM-729 | — | — |
 
-¹ 已完成拆分登记：SysTick 见 PRM-729，DMA/USART 见 PRM-730，EXTI9_5/HRTIM 见 PRM-731；PRM-728 只作汇总。EXTI4 的抢占优先级待补，需在工程 / Zephyr 设备树中确认。
+EXTI4 可抢占通信与 DMA 中断。同级中断彼此不抢占，同时挂起时按 IRQ 编号处理。端口启停的中断路径应保持短且有界。PB4 负向过渡满足停止条件时，应立即封锁两路出波。若同时存在已检出的过流，保留其硬件标志和运行归属，按 E-001 处理；E-002 的启动拒绝条件同样适用于 PB4。硬件过流停波独立于 NVIC 调度。[ST PM0214 §2.3.5–§2.3.6](https://www.st.com/resource/en/programming_manual/pm0214-stm32-cortexm4-mcus-and-mpus-programming-manual-stmicroelectronics.pdf)
 
 ## 3 物理信号追溯
 
@@ -265,5 +264,5 @@ CubeMX（LL/HAL）参考工程用于核对硬件配置。现有配置文档的�
 | PA2/PA3 | 上位机通信串口 | I-001～I-025 | 全命令集（发布版选定的协议口） |
 | PC4/PC5 | 单板调试版协议口 | I-027 | 全命令集（编译期宏选中时） |
 | PA13/PA14 | SWD | I-029 | —（调试通路，不进协议） |
-| PF0/PF1 | 8 MHz 晶振 | N-005 | —（时钟源，无命令码） |
+| PF0/PF1 | 8 MHz 晶振（PRM-701） | — | — |
 | — | 片内 DAC1/DAC3 比较器阈值 | I-015、E-001 | 0x38/0x39 |
