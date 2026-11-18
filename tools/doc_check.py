@@ -31,13 +31,23 @@ def main() -> int:
     problems = 0
 
     print(f"registry: {len(prm)} PRM")
-    for doc in sorted(DOCS.rglob("*.md")):
+    for doc in sorted(list(DOCS.rglob("*.md")) + ([GLOSSARY] if GLOSSARY.exists() else [])):
         text = doc.read_text(encoding="utf-8")
         rel = doc.relative_to(ROOT)
         refs = set(re.findall(r"PRM-\d{3}", text))
         unknown_prm = sorted(refs - prm)
         bare = re.findall(r"\[待确认\](?!\s*Q-\d)", text)
         leftovers = [tok for tok in ("[CRC16]", "[FA]") if tok in text]
+        # the documents describe the present, not where they came from
+        banned = []
+        if re.search(r"Q-\d{3}", text):
+            banned.append("Q-nnn reference")
+        if "OPEN_QUESTIONS" in text:
+            banned.append("OPEN_QUESTIONS reference")
+        if "原 §" in text or "原文 §" in text:
+            banned.append("baseline section locator")
+        if "[未收录]" in text:
+            banned.append("[未收录] marker")
         crc = text.count("{{CRC}}")
         flags = []
         if unknown_prm:
@@ -46,6 +56,8 @@ def main() -> int:
             flags.append(f"{len(bare)} bare [待确认]")
         if leftovers:
             flags.append(f"leftover {leftovers}")
+        if banned:
+            flags.append("banned " + ", ".join(banned))
         if flags:
             problems += len(flags)
         print(
@@ -77,7 +89,7 @@ def main() -> int:
             problems += 1
 
     # relative markdown links must resolve
-    for doc in sorted(DOCS.rglob("*.md")):
+    for doc in sorted(list(DOCS.rglob("*.md")) + ([GLOSSARY] if GLOSSARY.exists() else [])):
         text = doc.read_text(encoding="utf-8")
         for target in re.findall(r"\]\(([^)\s]+)\)", text):
             if target.startswith(("http://", "https://", "#", "mailto:")):
