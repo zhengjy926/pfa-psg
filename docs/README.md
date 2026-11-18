@@ -8,9 +8,9 @@
 | --- | --- | --- | --- |
 | 1 | [`../GLOSSARY.md`](../GLOSSARY.md) | 领域词汇的唯一定义处。任何术语以它为准，含 `_Avoid_` 禁用同义词 | 现行 |
 | 2 | [`srs/pulse-gen-firmware.md`](srs/pulse-gen-firmware.md) | 需求规格，验收权威。需求 ID：`F-`（功能）、`I-`（接口）、`T-`（时序）、`E-`（异常）、`N-`（非功能） | 现行 |
-| 3 | [`spec/ecsp-general.md`](spec/ecsp-general.md) | ECSP 通用层：帧格式、通信机制、通用命令 0x01–0x12 | 现行 |
-| 4 | [`spec/board-pulse-gen.md`](spec/board-pulse-gen.md) | 本板实例化：板卡功能命令 0x30–0x45、故障位分配、符合性矩阵 | 现行 |
-| 5 | [`spec/product-cardiac-pfa.md`](spec/product-cardiac-pfa.md) | 产品级实例化：地址、拓扑、链路角色 | **部分收录（仅 §2.1）** |
+| 3 | [`spec/ecsp-general.md`](spec/ecsp-general.md) | ECSP 通用层：帧格式、通信机制、通用命令区 0x01–0x2F（0x01–0x12 已定义、0x13–0x2F 保留） | 现行 |
+| 4 | [`spec/board-pulse-gen.md`](spec/board-pulse-gen.md) | 本板实例化：板卡功能命令 0x30–0x43（0x44/0x45 保留未定义）、故障位分配、符合性矩阵 | 现行 |
+| 5 | [`spec/product-cardiac-pfa.md`](spec/product-cardiac-pfa.md) | 产品级实例化：地址、拓扑、链路角色、帧/命令/时序的沿用声明、符合性矩阵 | 结构完整；产品级缺口见其附录 B（17 条 `[待补]`） |
 | 6 | [`hw/mcu-pinmap.md`](hw/mcu-pinmap.md) | MCU 外设、引脚、时钟、中断的实现绑定 | 现行 |
 | 7 | [`params.md`](params.md) | 全部数值参数的唯一登记表（`PRM-xxx`） | 现行 |
 | 8 | [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md) | 未裁决的冲突与缺口（`Q-xxx`） | 持续更新 |
