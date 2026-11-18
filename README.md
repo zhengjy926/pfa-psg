@@ -47,8 +47,8 @@ scatter file `bsp/psg_v3/psg_v3.sct`).  Batch build:
   half-packet timing, session/handshake/heartbeat, adjudication order, dedup,
   run state, upload gating, 0x3C/0x11 reporting and reset ordering.
 - Both target builds link with 0 errors and 0 warnings.  Static RAM is
-  21.8 KB (Keil) / 22.8 KB (GCC), under the 32 KB target and the PRM-602 limit;
-  the GCC image is 18.5 KB.
+  21.3 KiB (Keil) / 22.3 KiB (GCC), under the 32 KiB target and the PRM-602 limit;
+  the GCC image is 18,556 B.
 - `cppcheck --addon=misra` reports zero rule findings on the project sources
   (the nine `misra-config` notices come from FreeRTOS macros that cppcheck
   cannot evaluate; a certified MISRA checker is still required for release).
@@ -61,7 +61,10 @@ scatter file `bsp/psg_v3/psg_v3.sct`).  Batch build:
 - The `timebase`/`uart` host doubles live in `tests/host/fakes/`; the production
   drivers are selected by the board static instances, not by a compile switch.
 
-## Known documentation conflicts
+## Known issues
+
+The full register of open gaps, bench items, adjudication items and review
+dispositions is [docs/implementation-gaps.md](docs/implementation-gaps.md).
 
 - I-007 says a dedup entry leaves the queue when its response completes, while
   the same clause requires up to three original-response replays.  This build

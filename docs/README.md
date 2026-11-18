@@ -15,6 +15,7 @@
 | 启停裁定与运行状态归属 | [脉冲引擎设计](design/pulse-engine.md) | 查 ECSP 请求交接、端口停止和过流并发处理 |
 | ADC 样本归属、串级结算和截止时间验证 | [电流采集与串级结算设计](design/current-settlement.md) | 按处理阶段核对实现，并回查 SRS 的截止条件 |
 | 术语、冲突和待补输入 | [术语表](../GLOSSARY.md) · [疑点与待补项](ambiguities.md) | 按术语语境或受影响的条款定位 |
+| 实现缺口、台架待办与复核处置 | [实现缺口登记](implementation-gaps.md#0-查阅约定) | 按 GAP 编号、ticket 或状态查 |
 
 ## 常用阅读路径
 
