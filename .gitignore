@@ -53,3 +53,13 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Firmware build outputs
+build/
+keil/Objects/
+keil/Listings/
+keil/DebugConfig/
+keil/RTE/
+keil/*.log
+keil/*.uvoptx
+keil/*.dep

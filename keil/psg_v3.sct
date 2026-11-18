@@ -1,0 +1,20 @@
+; PSG v3 scatter file for the Keil MDK-ARM (armclang) build.
+;
+; Bank1 holds the vector table, code and constants.  The identity/calibration
+; record region in bank2 (0x08040000) is outside this image (ADR 0002).
+
+LR_IROM1 0x08000000 0x00040000
+{
+  ER_IROM1 0x08000000 0x00040000
+  {
+    *.o (RESET, +First)
+    *(InRoot$$Sections)
+    .ANY (+RO)
+    .ANY (+XO)
+  }
+
+  RW_IRAM1 0x20000000 0x00020000
+  {
+    .ANY (+RW +ZI)
+  }
+}

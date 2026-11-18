@@ -1,0 +1,4 @@
+FreeRTOS-Kernel V11.1.0
+Source: https://github.com/FreeRTOS/FreeRTOS-Kernel
+Ported subset: tasks/queue/list, GCC ARM_CM4F port (used by armclang AC6 and arm-none-eabi-gcc).
+
