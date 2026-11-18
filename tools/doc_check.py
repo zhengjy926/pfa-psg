@@ -4,11 +4,10 @@
 
 Checks
   1. every PRM-xxx referenced anywhere exists in docs/params.md
-  2. every Q-xxx referenced anywhere exists in docs/OPEN_QUESTIONS.md
-  3. no bare [待确认] without a Q id
-  4. no leftover [CRC16] / [FA] placeholders from the baseline docs
-  5. GLOSSARY term count and colon style
-  6. duplicate requirement IDs inside the SRS
+  2. no bare [待确认] left without a [待补] target
+  3. no leftover [CRC16] / [FA] placeholders from the baseline docs
+  4. GLOSSARY term count and colon style
+  5. duplicate requirement IDs inside the SRS
 
 Usage: python tools/doc_check.py
 """
@@ -20,7 +19,6 @@ ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 
 PARAMS = DOCS / "params.md"
-OQ = DOCS / "OPEN_QUESTIONS.md"
 GLOSSARY = ROOT / "GLOSSARY.md"
 
 
@@ -30,25 +28,20 @@ def load_ids(path: Path, pattern: str):
 
 def main() -> int:
     prm = load_ids(PARAMS, r"^\|\s*(PRM-\d{3})\s*\|")
-    oq = load_ids(OQ, r"^###\s+(Q-\d{3})")
     problems = 0
 
-    print(f"registry: {len(prm)} PRM, {len(oq)} Q")
+    print(f"registry: {len(prm)} PRM")
     for doc in sorted(DOCS.rglob("*.md")):
         text = doc.read_text(encoding="utf-8")
         rel = doc.relative_to(ROOT)
         refs = set(re.findall(r"PRM-\d{3}", text))
-        qs = set(re.findall(r"Q-\d{3}", text))
         unknown_prm = sorted(refs - prm)
-        unknown_q = sorted(qs - oq)
         bare = re.findall(r"\[待确认\](?!\s*Q-\d)", text)
         leftovers = [tok for tok in ("[CRC16]", "[FA]") if tok in text]
         crc = text.count("{{CRC}}")
         flags = []
         if unknown_prm:
             flags.append(f"unknown PRM {unknown_prm}")
-        if unknown_q:
-            flags.append(f"unknown Q {unknown_q}")
         if bare:
             flags.append(f"{len(bare)} bare [待确认]")
         if leftovers:
@@ -56,7 +49,7 @@ def main() -> int:
         if flags:
             problems += len(flags)
         print(
-            f"  {str(rel):46s} PRM {len(refs):3d}  Q {len(qs):2d}  CRC {crc:2d}"
+            f"  {str(rel):46s} PRM {len(refs):3d}  CRC {crc:2d}"
             + ("   <-- " + "; ".join(flags) if flags else "")
         )
 

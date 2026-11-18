@@ -375,7 +375,7 @@ _Avoid_: 手工维护的 scatter 模板, 手写文件清单
 
 ## ECSP 语言
 
-设备组内各产品与板卡之间、以及节点与外部系统之间约定的自定义串行通信协议，用于支撑设备组内可达性与互操作性。规范见 [ecsp-general.md](docs/spec/ecsp-general.md)、[board-pulse-gen.md](docs/spec/board-pulse-gen.md) 与 [product-cardiac-pfa.md](docs/spec/product-cardiac-pfa.md)；本文件只固定词汇，不复述规范条款，未裁决冲突见 [OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md)。
+设备组内各产品与板卡之间、以及节点与外部系统之间约定的自定义串行通信协议，用于支撑设备组内可达性与互操作性。规范见 [ecsp-general.md](docs/spec/ecsp-general.md)、[board-pulse-gen.md](docs/spec/board-pulse-gen.md) 与 [product-cardiac-pfa.md](docs/spec/product-cardiac-pfa.md)；本文件只固定词汇，不复述规范条款。
 
 ### 协议与文档
 

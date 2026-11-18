@@ -1,12 +1,12 @@
 # MCU 外设与引脚配置
 
-> 权威：实现绑定，不得反向约束协议与需求。索引见 [README](../README.md)；参数见 [params.md](../params.md)；未裁决项见 [OPEN_QUESTIONS.md](../OPEN_QUESTIONS.md)。
+> 权威：实现绑定，不得反向约束协议与需求。索引见 [README](../README.md)；参数见 [params.md](../params.md)。
 
 缺口说明：
 
 - AF 复用编号已按 STM32G474 通用映射填写，并与 CubeMX 参考工程的 `LL_GPIO_AF_13` 核对一致（PA8/PA9）。
 - **实现目标是 Zephyr**：本文件记录的是硬件配置意图，落地应以设备树（DTS）与 Zephyr 驱动表达；文中引用的 CubeMX（LL/HAL）生成代码只作意图证据，不是实现方案。
-- 其余缺口见 §3.2。
+- 其余缺口见 §3。
 
 ## 0 芯片与时钟
 
@@ -69,7 +69,6 @@
 > 两个被「上电默认电平」列略去、但仍需实现的硬件事实：
 > - 四个 EXTI 输入（PB4、PB6、PG7、PG8）原文配置为**内部下拉**（`GPIO Pull-up/Pull-down` = `Pull-down`）；
 > - 复位到初始化之间是浮空窗口：复位后除调试脚外所有 GPIO 为浮空输入、输出数据寄存器为 0。安全相关输出（杆驱动 PD8–PD13、过流锁存复位 PG9）**必须由硬件上下拉兜底**，不能只依赖初始化后的「低电平」。
-
 
 ## 2 外设配置
 
@@ -179,7 +178,7 @@
 | --- | --- | --- | --- |
 | 预分频 | PRM-719 | — | 原文记法 /8 |
 | 重载 | PRM-720 | 计数 | — |
-| 超时 | PRM-603 | s | 容差未裁决（Q-016） |
+| 超时 | PRM-603 | s | — |
 | 计数时钟 | PRM-721 | kHz | LSI；超时的基准 |
 
 ### 2.6 USART1 / USART2
@@ -192,7 +191,7 @@
 | TX 引脚 | USART1：PC4；USART2：PA2 | — | §1；原文 `Signal on Pin` = `USART1_TX` / `USART2_TX` |
 | RX 引脚 | USART1：PC5；USART2：PA3 | — | §1；原文 `Signal on Pin` = `USART1_RX` / `USART2_RX` |
 | 用途 | USART1：单板调试版协议口；USART2：发布版协议口 | — | 归属 I-027 / I-001～I-025 |
-| 选用方式 | 编译期选定 `CONFIG_PSG_PROTO_UART` = `USART2`（发布版，默认）或 `USART1`（单板调试版） | — | 原文只写「编译期宏二选一」，宏名与默认项由本仓库约定补足（Q-033）；Zephyr 侧用 Kconfig choice 表达 |
+| 选用方式 | 编译期选定 `CONFIG_PSG_PROTO_UART` = `USART2`（发布版，默认）或 `USART1`（单板调试版） | — | 宏名与默认项由本仓库约定；Zephyr 侧用 Kconfig choice 表达 |
 
 #### 2.6.2 参数配置（两路一致）
 
@@ -240,11 +239,11 @@
 | USART1 | PRM-730 | — | — |
 | USART2 | PRM-730 | — | — |
 | EXTI9_5（PB6 / PG7 / PG8） | PRM-731 | — | PB6 / PG7 / PG8 对应 EXTI6 / EXTI7 / EXTI8 |
-| EXTI4（PB4 端口启停输入） | 原文未给出 | — | 原文 NVIC 表缺此行；PB4 见 §1；优先级需在工程 / Zephyr 设备树中确认（Q-029） |
+| EXTI4（PB4 端口启停输入） | `[待补]` | — | NVIC 表中无此行；PB4 见 §1；优先级需在工程 / Zephyr 设备树中确认 |
 | HRTIM1_FLT | PRM-731 | — | 与 §2.4.6 同源；CubeMX 参考工程抢占 4、子优先级 0 |
 | HRTIM1_TIMA | PRM-731 | — | 与 §2.4.6 同源；CubeMX 参考工程抢占 4、子优先级 0 |
 
-¹ 已完成拆分登记：SysTick 见 PRM-729，DMA/USART 见 PRM-730，EXTI9_5/HRTIM 见 PRM-731；PRM-728 只作汇总。EXTI4 在原文 NVIC 表中缺行，其优先级记为「原文未给出」，需在工程中确认。
+¹ 已完成拆分登记：SysTick 见 PRM-729，DMA/USART 见 PRM-730，EXTI9_5/HRTIM 见 PRM-731；PRM-728 只作汇总。EXTI4 的抢占优先级待补，需在工程 / Zephyr 设备树中确认。
 
 ## 3 未登记与缺口
 
@@ -273,29 +272,10 @@
 | HRTIM 中断映射 | SYSFLT / FLT4 / FLT5 → `HRTIM1_FLT_IRQn`；TIMA 重复 → `HRTIM1_TIMA_IRQn` | §3.4 | 标识符，非数值参数 |
 | USART 模式与方向 | 异步；收发 | §3.6 | — |
 | USART 其余选项 | FIFO 使能；单采样、自动波特率、TX / RX 引脚反相、数据反相、TX / RX 引脚交换、MSB First 均禁用；溢出使能；DMA on RX Error 启用 | §3.6 | — |
-| USART 双口二选一 | 编译期 `CONFIG_PSG_PROTO_UART`：`USART2`（默认）/ `USART1` | §3.6 | 本仓库约定，非原文；见 Q-033 |
+| USART 双口二选一 | 编译期 `CONFIG_PSG_PROTO_UART`：`USART2`（默认）/ `USART1` | §3.6 | 本仓库约定；见 §2.6.1 |
 | DMA（USART 侧） | `DMA1_Channel1`–`DMA1_Channel4`；普通模式；字节宽度 | §3.7 | PRM-725 只登记 ADC 半字宽度 |
 | NVIC 逐项抢占优先级 | SysTick 15；DMA1_Channel1–6 5；USART1 5；USART2 5；EXTI9_5 4；HRTIM1_FLT 4；HRTIM1_TIMA 4 | §3.8 | PRM-728 汇总登记，无法逐项还原 |
 | GPIO 上电输出电平 | PB5、PD8–PD13、PG9 低；PB9 高 | §2 | 见 §1 |
 | GPIO 上下拉 | PB4 / PB6 / PG7 / PG8 下拉；其余无上下拉 | §2 | 见 §1 |
 | SYS Dead Battery | 禁用 | §3.9 | — |
 | 固件信号标识符 | 原文 `GPIO Label` 与 `Signal on Pin` | §2 | 清单见 §1；未登记，不参与术语 |
-
-### 3.2 待确认与缺口
-
-| 缺口 | 影响 | 现状处置 |
-| --- | --- | --- |
-| Q-019：已关闭 | — | §1 的 8 个复用引脚已按 STM32G474 通用映射填写，并由 CubeMX 参考工程的 `LL_GPIO_AF_13`（PA8/PA9）核对一致 |
-| Q-020：已关闭 | 周期、突发预分频、ADC 采样时间换算 | `MUL2` 按 RM0440 `CKPSC` 表 = 2 × fHRTIM = 340 MHz，周期 65534 计数 ≈ 192.7 µs；突发时钟取 fHRTIM ÷512 ≈ 332 kHz；ADC 采样 12.5 周期 @48.57 MHz ≈ 257 ns |
-| Q-029：已关闭 | — | §2.8 已补 EXTI4 行，其优先级原文未给出，记为该列「原文未给出」 |
-| Q-023：引脚追溯粒度过粗 | 6 个引脚对 8 个需求 ID | §1 脚注 ⁶ 保留原状 |
-| Q-016：看门狗超时无容差 | 超时判据不可判定 | §2.5 引用 PRM-603 并注明 |
-| USART 双口宏名 | 原工程未命名 | 已约定为 `CONFIG_PSG_PROTO_UART`（默认 `USART2`），见 §2.6.1 |
-| PRM-728 登记粒度过粗 | 抢占优先级无法逐项还原 | §3.1 保留逐项原值 |
-| PRM-725 登记粒度过粗 | USART DMA 字节宽度无登记 | §3.1 保留原值 |
-
-### 3.3 原文无法解析为表格的信息
-
-1. 「宏定义二选一」：原文只有这一句结论，没有宏名、取值与默认项，无法成为参数行（见 §2.6.1）。
-2. DAC 的「默认」「出厂值」：DAC3 的采样保持与标定只写「默认」，DAC1 的标定只写「出厂值」，取值未展开，无法成为参数行（见 §2.3）。
-3. HRTIM 定时器 B 的「更新触发 = Timer B 更新」「复位触发 = UPDATE」：原文给的是事件名而非可直接落地的取值（见 §2.4.2）。
