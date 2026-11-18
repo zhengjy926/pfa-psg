@@ -38,7 +38,7 @@ STM32G474QET6 可用 `DBANK` 选项位配置双 Bank 模式。该模式下每个
 | 负通道电流采样 | PA1 | 模拟 | — | ADC2_IN2；COMP1 INP | F-035、E-001 | 0x31、0x3C |
 | 正通道脉冲输出 | PA8 | 复用 AF13 | 见 §2.4 | HRTIM1_CHA1 | F-022 | 0x30、0x34 |
 | 负通道脉冲输出 | PA9 | 复用 AF13 | 见 §2.4 | HRTIM1_CHA2 | F-022 | 0x30、0x34 |
-| 端口启停输入 | PB4 | 输入 | — | EXTI4，双边沿，内部下拉 | F-003、F-012 | 0x30、0x3E |
+| 端口启停输入 | PB4 | 输入 | — | EXTI4，双边沿，内部下拉 | F-003、F-012 | 0x30、0x3E；可选硬件联动（AF13=HRTIM1_EEV7）见 §2.8 |
 | R 波输入 | PB6 | 输入 | — | EXTI6，内部下拉 | F-006、F-010、F-031 | 0x32、0x36/0x37 |
 | 运行指示 | PB5 | 输出 | 低 | GPIO | F-014 | — |
 | 板载 LED | PB9 | 输出 | 高 | GPIO | F-015 | — |
@@ -71,7 +71,7 @@ STM32G474QET6 可用 `DBANK` 选项位配置双 Bank 模式。该模式下每个
 | 外部触发源 | ADC1：HRTIM1 TRG1；ADC2：HRTIM1 TRG3 | — | 生成事件见 §2.4.4 |
 | 时钟预分频 | ASYNC DIV1 | — | 与 PRM-708 的 ADC 时钟对应 |
 | 过采样 | PRM-734 | — | — |
-| DMA | 循环 | — | DMA 映射见 §2.7。每个半区对应一串，见[串级结算设计](../design/current-settlement.md#采样与判定) |
+| DMA | 循环 | — | DMA 映射见 §2.7。缓冲固定最大尺寸（每路 2×256×2 B），HT/TC 仅数据就绪提示；串边界由 TIMA REP 串结束锚 + ISR 内 NDTR 快照推导，见[串级结算设计](../design/current-settlement.md#采样与判定) |
 
 ### 2.2 COMP1 / COMP3
 
@@ -111,7 +111,7 @@ HRTIM 基准时钟 fHRTIM = SYSCLK（PRM-707）。定时器 A/B 计数时钟按 
 | 复位源 | TA1 ← CMP2；TA2 ← PER | — | — |
 | 空闲电平 | 两路均为低电平（INACTIVE） | — | `HRTIM_OUTAR.IDLES1 = 0`、`IDLES2 = 0` |
 | 突发模式空闲控制 | 两路均响应突发控制器的空闲请求 | — | `HRTIM_OUTAR.IDLEM1 = 1`、`IDLEM2 = 1` |
-| 重复计数 | PRM-715 | — | 更新禁用 |
+| 重复计数 | PRM-715 | — | 更新使能（PREEN=1）。运行中写 REPR 于下一次更新事件转移，实际作用于下下串——按波形表提前一串预取写入（RM0440 §28.3.4、§28.5.18） |
 | 预装载 | 禁用 | — | — |
 
 软件进入 HRTIM 输出空闲态和突发控制器请求空闲时均应用上表的空闲电平。`INACTIVE` 按输出极性映射到引脚，故障输出配置见 §2.4.3。[ST RM0440 §28.3.14](https://www.st.com/resource/en/reference_manual/rm0440-stm32g4-series-advanced-armbased-32-bit-mcus-stmicroelectronics.pdf)
@@ -134,7 +134,7 @@ HRTIM 基准时钟 fHRTIM = SYSCLK（PRM-707）。定时器 A/B 计数时钟按 
 | 故障源 | FLT4 ← COMP1；FLT5 ← COMP3 | — | 选择片内比较器源，`FLT4SRC[1:0] = 01`、`FLT5SRC[1:0] = 01`。[ST RM0440 表 228](https://www.st.com/resource/en/reference_manual/dm00355726.pdf) |
 | 故障输入极性 | 待核实 | — | 对照参考工程核实 `FLT4P`、`FLT5P`，见[硬件待补项](../ambiguities.md#硬件输入) |
 | 滤波 | 无 | — | — |
-| 复位模式 | 条件复位 | — | — |
+| 复位模式 | 锁存 | — | 由条件复位改为锁存：过流消失后保持故障态停波，直至 0x3D 复位清除；台架重验 T-005 |
 | 计数器值 | PRM-716 | 计数 | — |
 | 故障输出电平 | 两路均为低电平（INACTIVE） | — | `HRTIM_OUTAR.FAULT1[1:0] = 0b10`、`FAULT2[1:0] = 0b10` |
 
@@ -153,7 +153,8 @@ HRTIM 基准时钟 fHRTIM = SYSCLK（PRM-707）。定时器 A/B 计数时钟按 
 | 模式 | 单次（SINGLESHOT） | — | — |
 | 时钟源 | FHRTIM | — | 使用 HRTIM 基准 PRM-707 |
 | 预分频 | PRM-717 | — | 分频取值及派生频率见 PRM-717 |
-| 触发源 | Timer A 重复 | — | — |
+| 触发源 | Timer A 重复 | — | REP=N-1 时每 N 周期一次；REP=0 时每周期一次。N×T_PWM 小于突发周期时丢触发，须 TABM=1（RM0440 §28.3.15） |
+| 群边界参数重载 | 软件预装载（或 burst DMA：BRSTDMA=10、UPDGAT=0010） | — | G474 突发控制器不写 CMP/PER/REP 寄存器（RM0440 §28.3.15、§28.3.23），跨群换参数由软件在群间隔内完成 |
 
 #### 2.4.6 中断
 
@@ -226,4 +227,6 @@ USART RX 表项为参考配置。PSG 优先验证循环 DMA 接收，并启用 U
 | USART2 | PRM-729 | — |
 | SysTick | PRM-728 | — |
 
-EXTI4 可抢占通信与 DMA 中断。同级中断彼此不抢占，同时挂起时按 IRQ 编号处理。端口启停应走短且有界的中断路径，停波与同时过流的验收见 SRS F-012、E-001、T-005。过流锁存停波独立于 NVIC 调度。[ST PM0214 §2.3.5–§2.3.6](https://www.st.com/resource/en/programming_manual/pm0214-stm32-cortexm4-mcus-and-mpus-programming-manual-stmicroelectronics.pdf)
+EXTI4 可抢占通信与 DMA 中断。同级中断彼此不抢占，同时挂起时按 IRQ 编号处理。过流停波唯一由 HRTIM 硬件故障态完成，ISR 只捕捉故障来源与样本证据、不写输出寄存器；过流锁存停波独立于 NVIC 调度。端口启停应走短且有界的中断路径，端口停波最坏延迟 = 中断压栈 + 同级最长 ISR WCET + EXTI4 处理 WCET；各保护类 ISR WCET 预算与 configMAX_SYSCALL_INTERRUPT_PRIORITY = 4 见 PRM-727，验收见 SRS F-012、E-001、T-005。[ST PM0214 §2.3.5–§2.3.6](https://www.st.com/resource/en/programming_manual/pm0214-stm32-cortexm4-mcus-and-mpus-programming-manual-stmicroelectronics.pdf)
+
+可选硬件联动（RM0440 已核实）：PB4 可复用为 HRTIM1_EEV7（AF13），经 EXTEVNT7 直接复位两路输出，硬件停波延迟 typ 56 ns / max 66 ns（DS12288 Table 62）。代价：AF13 与 EXTI4 输入模式互斥，端口停止事件捕捉改经 HRTIM EEV 中断完成，运行状态更新路径随改；EEV7 不进故障通道（RM0440 Table 228，仅 EEV1–6 可接故障输入）。默认仍采用 EXTI4 ISR 方案，EEV7 作为可选升级保留（RM0440 Table 223）。

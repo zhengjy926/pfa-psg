@@ -1,6 +1,6 @@
 # 嵌入式固件分层调研
 
-PSG v3 的分层建议以 FreeRTOS 任务化调度和本板时序为依据。grblHAL、TinyUSB 和 PX4 提供计划、实时执行、事件交接和板级绑定的源码参考。Zephyr 补充了类型化设备实例的实现。已确认的实现边界见 [PSG v3 固件架构](firmware-architecture.md)。 [PSG 调度 ADR](../adr/0001-bare-metal-cooperative-scheduling.md) · [PSG 时序需求](../srs/pulse-gen-firmware.md#4-时序需求t-)
+PSG v3 的分层建议以 FreeRTOS 任务化调度和本板时序为依据。grblHAL、TinyUSB 和 PX4 提供计划、实时执行、事件交接和板级绑定的源码参考。Zephyr 补充了类型化设备实例的实现。三者板级绑定的做法汇总为末节的 [drv/ 设备绑定模型指引](#drv-设备绑定模型指引)。已确认的实现边界见 [PSG v3 固件架构](firmware-architecture.md)。 [PSG 调度 ADR](../adr/0001-bare-metal-cooperative-scheduling.md) · [PSG 时序需求](../srs/pulse-gen-firmware.md#4-时序需求t-)
 
 ## grblHAL 的计划、实时执行与硬件移植
 
@@ -22,3 +22,13 @@ PSG v3 的分层建议以 FreeRTOS 任务化调度和本板时序为依据。grb
 ## Zephyr 的类型化设备实例
 
 Zephyr 的 STM32 UART 驱动为每个设备分别定义只读配置、运行数据和设备操作集，并用 `DEVICE_DT_INST_DEFINE` 绑定。PSG 的 UART 设计已采用同样的实例职责划分，具体 USART、DMA 和中断由静态板级装配提供。这条边界同样适合把 Flash 的擦写操作与标识记录格式分开。 [Zephyr 设备模型](https://docs.zephyrproject.org/latest/kernel/drivers/index.html) · [STM32 UART 实例实现](https://github.com/zephyrproject-rtos/zephyr/blob/main/drivers/serial/uart_stm32.c) · [PSG UART 收发设计](uart-reception.md)
+
+## drv/ 设备绑定模型指引
+
+PSG 的 MCU 驱动层 `drv/` 对 uart、adc、dma、dac、comp、iwdg、flash、led、timebase、watchdog 统一采用 config/data/ops 静态实例模型：每驱动一张静态实例表，构建期绑定目标板实现，主机测试链接同一公开接口的替身、零编译开关。三处开源参考各补一块拼图：
+
+- Zephyr 设备模型给出实例职责划分的原型：每实例只读 config、运行 data 与设备 ops 经 `DEVICE_DT_INST_DEFINE` 绑定，具体外设、DMA 与中断由静态板级装配提供（PSG 的 UART 已采用该划分）。这一划分推广到全部 drv/ 接口头。 [Zephyr 设备模型](https://docs.zephyrproject.org/latest/kernel/drivers/index.html) · [STM32 UART 实例实现](https://github.com/zephyrproject-rtos/zephyr/blob/main/drivers/serial/uart_stm32.c)
+- TinyUSB 的 BSP 分层给出寄存器级驱动与板级差异的边界：FSDEV 控制器寄存器操作留在可复用驱动，STM32G4 `family.c` 提供 board_init 与 IRQ 入口、`board.h` 集中 GPIO、UART 引脚与时钟配置。对应 PSG drv/ 持有寄存器操作与完成状态、bsp/ 板级配置持有实际资源绑定。 [STM32G4 BSP](https://github.com/hathach/tinyusb/blob/f9ee51f1109ed571ec368becfbb0031662b71176/hw/bsp/stm32g4/family.c#L55-L105) · [NUCLEO-G474 板级定义](https://github.com/hathach/tinyusb/blob/f9ee51f1109ed571ec368becfbb0031662b71176/hw/bsp/stm32g4/boards/stm32g474nucleo/board.h#L41-L84)
+- grblHAL 板卡映射给出构建期选板的做法：移植按板型选择映射头文件，步进、方向与限位引脚集中在映射内定义。对应 PSG 板级配置集中持有实际引脚、外设实例、NVIC 优先级与 Flash 区域的绑定。 [板型选择](https://github.com/grblHAL/STM32F4xx/blob/1c90fa830c72c4e901148890b7b00cad50dc5e67/Inc/driver.h#L150-L201) · [板卡映射](https://github.com/grblHAL/STM32F4xx/blob/1c90fa830c72c4e901148890b7b00cad50dc5e67/boards/btt_skr_pro_v1_1_map.h#L44-L78)
+
+**PSG 借鉴结论。** drv/ 接口头统一 config/data/ops 静态实例模型并构建期绑定，主机测试以同接口替身链接、零编译开关；驱动拥有寄存器操作、搬运进度、完成和错误状态，板级配置拥有具体资源绑定，边界与依赖见 [PSG v3 固件架构](firmware-architecture.md)。

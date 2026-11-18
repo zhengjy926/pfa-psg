@@ -55,7 +55,7 @@
 | PSG-09 | 0x3D 成功清除电流异常后，0x31 双通道恢复已停止状态和普通电流读数，保留已完成触发次数。 | [SRS I-021](srs/pulse-gen-firmware.md#32-命令与载荷)、[E-004](srs/pulse-gen-firmware.md#5-异常与安全需求e-) |
 | PSG-10 | PSG 的 0x03、0x05 可在已握手的正常业务会话中写入。 | [板卡符合性矩阵](spec/board-pulse-gen.md#6-符合性矩阵)、[ECSP §8](spec/ecsp-general.md#8-安全要求) |
 | PSG-11 | 0x34 按整数 ns 配置，0x35 原样读回。标定驱动时长及各脉冲间隔按实际 HRTIM 周期取最近整数计数，半计数向上取整。外推点采用 T-001 和 T-006 中较严的容差。 | [SRS F-024、F-025](srs/pulse-gen-firmware.md#22-出波)、[T-001、T-006、T-009](srs/pulse-gen-firmware.md#4-时序需求t-) |
-| PSG-13 | Q16 确认以循环 DMA 的每个半区对应一串，前台收到串结束和齐样事件后优先结算。 | [采样与判定](design/current-settlement.md#采样与判定)、[SRS F-041](srs/pulse-gen-firmware.md#24-电流采样齐样与结算) |
+| PSG-13 | Q16 原裁决（循环 DMA 每个半区对应一串）已被 2026-11-19 架构优化取代：DMA 固定最大缓冲、HT/TC 仅数据就绪提示，串边界 = TIMA REP 锚 + ISR 内 NDTR 快照，样本归属按 (串号, NDTR 区间)。 | [采样与判定](design/current-settlement.md#采样与判定)、[SRS F-037、F-041](srs/pulse-gen-firmware.md#24-电流采样齐样与结算) |
 | PSG-14 | Q17 确认分别验收 ECSP 半包判定规则和实板接收计时精度。 | [UART 半包计时与验收](design/uart-reception.md#半包计时与验收)、[SRS T-011](srs/pulse-gen-firmware.md#4-时序需求t-) |
 | ECSP-01 | 0x03 适用于动作类。0x11 表示当前请求与在途操作互斥，PSG 普通运行忙通过 0x31 确认。 | [ECSP §5.1](spec/ecsp-general.md#51-应答码定义)、[PSG 状态矩阵](spec/board-pulse-gen.md#命令状态矩阵) |
 | ECSP-02 | 命令卡片定义载荷和特有条件。应答码、公共检查次序和状态拒绝优先级统一按 §5。 | [ECSP §5.1、§5.2](spec/ecsp-general.md#51-应答码定义) |
