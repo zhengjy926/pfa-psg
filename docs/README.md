@@ -10,6 +10,9 @@
 | 整机联调 | [产品通信配置](spec/product-cardiac-pfa.md) | 按链路确认主从角色，按节点查地址、期望版本和版本不符处置 |
 | 参数值、单位、范围、默认值 | [PRM 登记表](params.md) | 按 ID 或号段查数值，再读引用条款确认适用条件 |
 | 引脚、复用、外设、DMA 与中断 | [MCU 引脚表](hw/mcu-pinmap.md#1-引脚分配) · [外设配置](hw/mcu-pinmap.md#2-外设配置) | 按信号或引脚查绑定，沿表内需求 ID 和命令码反查 |
+| 固件分层与架构决策 | [固件架构](design/firmware-architecture.md) · [FreeRTOS 任务化调度](adr/0001-bare-metal-cooperative-scheduling.md) · [双 Bank Flash 布局](adr/0002-dual-bank-flash-layout.md) | 查文件目录、接口依赖、状态归属、调度模型及持久化布局 |
+| UART 设备接口与收发 | [UART 收发设计](design/uart-reception.md) | 查设备接口、IDLE 中断、DMA、半包与发送完成 |
+| 启停裁定与运行状态归属 | [脉冲引擎设计](design/pulse-engine.md) | 查 ECSP 请求交接、端口停止和过流并发处理 |
 | ADC 样本归属、串级结算和截止时间验证 | [电流采集与串级结算设计](design/current-settlement.md) | 按处理阶段核对实现，并回查 SRS 的截止条件 |
 | 术语、冲突和待补输入 | [术语表](../GLOSSARY.md) · [疑点与待补项](ambiguities.md) | 按术语语境或受影响的条款定位 |
 

@@ -4,40 +4,22 @@
 
 ## PSG 行为与验收
 
-| ID | 疑点 | 需要确认 |
-| --- | --- | --- |
-| PSG-01 | [SRS F-035](srs/pulse-gen-firmware.md#24-电流采样齐样与结算) 要求在脉冲窗口采样。PRM-710 在 PRM-708 下约为 257 ns，长于 PRM-307、PRM-308 的最短非零配置 200 ns。MCU 输出窗口、实际电流稳定窗口和 DMA 写入时刻是三个不同的观测量。 | 按[串级结算设计](design/current-settlement.md#截止时间与验证) 测量 ADC 引脚有效窗口、采样误差与 DMA 就绪延迟，并验证最短串间隔处理耗时。[ST AN5346](https://www.st.com/resource/en/application_note/an5346-stm32g4-adc-use-tips-and-recommendations-stmicroelectronics.pdf) |
-| PSG-02 | [SRS F-040](srs/pulse-gen-firmware.md#24-电流采样齐样与结算) 中 PRM-117 的默认等待加 PRM-119 的允许上限，等于 PRM-118 的严格上限，也等于 PRM-306 的最短群间隔。 | 给出最坏负载下的等待与统计用时，验证总耗时严格小于上限。确认是否要在分项预算中留出余量。 |
-| PSG-03 | [MCU HRTIM](hw/mcu-pinmap.md#24-hrtim1) 已规定空闲与故障输出电平，[NVIC](hw/mcu-pinmap.md#28-nvic) 中 EXTI4 与 HRTIM、EXTI9_5 同优先级。端口停止要求立即生效，尚无 PB4 到停波的量化时限。 | 测量初始化后空闲及故障输出电平。在通信负载下将 PB4 停止沿与 R 波、定时事件和过流对齐，验证无后续脉冲、过流归属保留、过流路径满足 T-005，并确认端口停止验收时限。 |
-| PSG-04 | [SRS F-004](srs/pulse-gen-firmware.md#21-启停与触发) 列出启动门槛；[0x32 与 0x36](spec/board-pulse-gen.md#0x32-设置边沿触发设置类) 分开配置，而 PRM-324 的上电值不满足 PRM-313、PRM-314。 | 确定已使能边沿触发但未成功设置 0x36 时，协议和端口启动分别应如何处理，包括拒绝或受理后的行为。 |
-| PSG-05 | ECSP [§5.3](spec/ecsp-general.md#53-异常场景处理) 要求掉线后进入安全状态或降级，[板卡 §2](spec/board-pulse-gen.md#重复握手与恢复) 仅定义合法重复握手后的处置。ECSP §6.2 明确了主机的掉线判据。 | 确定 PSG 是否独立检测掉线，掉线时两种启停源下的停波、杆状态、运行参数和诊断如何处理。 |
-| PSG-06 | [SRS F-014、F-015](srs/pulse-gen-firmware.md#21-启停与触发) 规定 PB5 在运行中恒高、PB9 按 PRM-607 翻转。PRM-604 另登记运行指示频率。 | 确认 PRM-604 是否已经作废，或是否属于另一个信号。 |
-| PSG-07 | [SRS I-025](srs/pulse-gen-firmware.md#32-命令与载荷) 引用 PRM-203 的默认版本，[产品通信配置](spec/product-cardiac-pfa.md#2-地址版本与板卡规范) 明确相同字面值是主机期望的软件完整版本。ECSP 的 0x02 为只读，0x03/0x04 则操作硬件版本。 | 确认 PRM-203 适用于软件发布版本、硬件版本的未写入值，还是两者。明确空白板 0x04 的验收值。 |
-| PSG-08 | [SRS F-043、F-046](srs/pulse-gen-firmware.md#24-电流采样齐样与结算) 明确了正常完成、过流、欠流的统计窗口；[术语表](../GLOSSARY.md) 的「序列输出平均电流」包含未齐样时已取得的有效数据。 | 明确主动中途停止或串级超时后，0x31 应保留上次完整轮的平均值，还是计算本轮已取得的数据。 |
-| PSG-09 | [SRS F-046、I-021、E-004](srs/pulse-gen-firmware.md#32-命令与载荷) 定义了状态块保留与 0x3D 清除电流异常，但未逐字段说明清除后 0x31 的诊断电流和计数。 | 明确清除后立即读回的通道状态、诊断电流、已完成触发次数，以及普通读数的恢复规则。 |
-| PSG-10 | ECSP [0x03、0x05 与 §8](spec/ecsp-general.md#8-安全要求) 限制生产/维护写入。[PSG 支持矩阵](spec/board-pulse-gen.md#6-符合性矩阵) 声明支持这两条命令。 | 补充 PSG 如何进入、退出及识别生产/维护模式，以及正常业务期间的访问条件。 |
-| PSG-11 | [SRS F-020、T-009](srs/pulse-gen-firmware.md#4-时序需求t-) 的脉冲时长和间隔可用整数 ns 编码，PRM-507 登记脉冲级分辨率 3 ns，[MCU HRTIM](hw/mcu-pinmap.md#24-hrtim1) 给出实际每计数约 2.94 ns。 | 确认分辨率约束的是配置步长还是实际输出，明确非整计数输入的量化规则；确认 F-025 外推区与 T-001 的精度验收关系。 |
-
-## ECSP 通用规则
-
-| ID | 疑点 | 需要确认 |
-| --- | --- | --- |
-| ECSP-01 | [通用应答码表](spec/ecsp-general.md#51-应答码定义) 将 0x03 的适用类别列为设置类，[PSG 0x30](spec/board-pulse-gen.md#0x30-启动停止脉冲输出动作类非幂等) 的非法控制码使用 0x03。通用表的 0x11 主机分支主要面向长耗时任务和系统复位，PSG 则在普通运行时用它拒绝配置或再次启动。 | 统一 0x03 对动作类的适用范围，以及 PSG 主机收到普通运行忙 0x11 后的处理。保留现有 0x30 状态矩阵的已裁决行为。 |
-| ECSP-02 | [0x05 卡片](spec/ecsp-general.md#0x05-设置序列号设置类) 的应答表只列成功，却要求非生产/维护模式返回 0x12。多个命令卡片写「未定义其它应答码」，[§4.2.2](spec/ecsp-general.md#422-从机上电操作) 另规定未握手的公共拒绝。 | 明确卡片应答码与公共拒绝规则的叠加关系，补齐 0x05 的错误应答及其他命令的长度、参数和状态拒绝优先级。 |
-| ECSP-03 | [§6.2.1](spec/ecsp-general.md#621-主机) 按「大于」掉线门限执行检查，PRM-112 同时描述连续三个心跳周期和 3 s。§6.2.2 用 PRM-113 的检查周期决定何时发送，0x10 存在独立的 PRM-111 周期容差。 | 确认可观察到的最大空闲心跳间隔、收到其他有效帧后的计时基准，以及正好达到掉线门限时是否判定掉线。 |
-| ECSP-04 | [§4.2.1](spec/ecsp-general.md#421-主机上电操作) 把 PRM-108 用于被动等待并提到再次探测，[§6.3](spec/ecsp-general.md#63-默认值与覆盖) 则规定 PRM-108 涵盖握手重试和版本核对。 | 定义总时限的起点、被动等待结束条件和主动探测的再次发送条件。 |
-| ECSP-05 | [§5.3](spec/ecsp-general.md#53-异常场景处理) 登记半包超时 PRM-115，缺少从首字节起计还是随字节续计、超时后怎样重新同步的条款。 | 确定计时和丢弃边界，补齐含连续帧、慢分片和坏长度的测试输入。 |
-| ECSP-06 | [附录 A](spec/ecsp-general.md#附录-a-实例化清单) 将物理层取值列为板卡声明项，物理层参数小节另有由产品声明的口径。 | 明确两级的签发职责。当前中控板与 PSG 两端采用的配置见[产品通信配置](spec/product-cardiac-pfa.md#3-psg-链路配置)。 |
-| ECSP-07 | [§4.4](spec/ecsp-general.md#44-长耗时命令处理机制) 要求成功受理携带 u16 的 T_exec_max，[§6.3](spec/ecsp-general.md#63-默认值与覆盖) 又要求预期超过其上限的命令使用「结果事件 + 获取结果」，而所有长耗时命令本就使用该机制。 | 确定超过 PRM-109 的操作应拆分、禁止，还是采用另外的编码与计时规则。适用于实现长耗时命令的节点。 |
-| ECSP-08 | [§8](spec/ecsp-general.md#8-安全要求) 和附录 A 要求提供命令、SRS 及风险管理编号映射，当前 PSG 可查 SRS 追溯，缺风险管理报告或编号。 | 提供适用的风险管理报告、风险 ID 及映射责任方。 |
+| ID | 已确认的验收项 | 待补数据 | 裁决 | 正式条款 |
+| --- | --- | --- | --- | --- |
+| PSG-01 | 按 [SRS F-035](srs/pulse-gen-firmware.md#24-电流采样齐样与结算) 和[串级结算设计](design/current-settlement.md#截止时间与验证) 验证最短非零脉冲、跨串首样和按串齐样。 | 提交标定后的实际功率输出、ADC 引脚有效窗口及采样误差、DMA 半区归属，以及最短串间隔下从采样到放行下一串的最坏用时和余量。 | 以台架测得的功率输出、ADC 引脚有效窗口和 DMA 就绪时刻验收最短非零配置。 | [SRS F-035](srs/pulse-gen-firmware.md#24-电流采样齐样与结算)、[采样验证](design/current-settlement.md#截止时间与验证) |
+| PSG-02 | 按 [SRS F-040](srs/pulse-gen-firmware.md#24-电流采样齐样与结算) 共同分配群级等待与结算预算，并留出正余量。 | 提交最坏负载下的两项用时上界、总用时和相对时限的余量。 | 最坏负载下，群级等待与结算总预算相对 PRM-118 的边界和 PRM-306 的最小群间隔均留有正余量。 | [SRS F-040](srs/pulse-gen-firmware.md#24-电流采样齐样与结算)、[群级预算验证](design/current-settlement.md#截止时间与验证) |
+| PSG-03 | 按 [SRS F-012](srs/pulse-gen-firmware.md#21-启停与触发) 和 [F-022](srs/pulse-gen-firmware.md#22-出波) 验证端口停波及输出电平，并发过流路径按 T-005 单独验收。 | 提交初始化后空闲及故障电平、事件对齐波形、并发过流归属和 PB4 负向过渡至两路停波的最坏延迟。PB4 停波验收阈值按实测最坏延迟与安全分析上限取严，上限待专项安全分析。 | 在通信负载下验证 PB4 停止与 R 波、定时事件和过流并发，保留过流归属并单独核对 T-005。 | [SRS F-012](srs/pulse-gen-firmware.md#21-启停与触发)、[F-022](srs/pulse-gen-firmware.md#22-出波) |
+| PSG-12 | 按 [SRS T-005](srs/pulse-gen-firmware.md#4-时序需求t-) 分别验证比较器过流检出与独立过流锁存到双路停波的时限。 | 核对板级功率关断路径，提交保持原杆驱动状态时的实际功率输出和出波电流波形，以及两条通路的最坏停波延迟。 | Q15 确认取消过流保护触发的六杆全断。过流检出、过流锁存分别按 PRM-509、PRM-510 验收双路停波。 | [SRS F-028](srs/pulse-gen-firmware.md#23-杆与杆选通)、[E-001、E-005](srs/pulse-gen-firmware.md#5-异常与安全需求e-)、[T-005](srs/pulse-gen-firmware.md#4-时序需求t-) |
 
 ## 硬件输入
 
 | ID | 疑点 | 需要输入 |
 | --- | --- | --- |
 | HW-01 | [DAC 配置](hw/mcu-pinmap.md#23-dac1--dac3) 使用「默认」「出厂值」。 | 提供生效配置、寄存器值或决定默认值的驱动与版本。 |
-| HW-02 | [HRTIM Timer B](hw/mcu-pinmap.md#242-定时器-btb无输出) 的更新和复位只记录事件名；[保护配置](hw/mcu-pinmap.md#243-故障与保护) 未绑定 FLT4/FLT5 的来源、极性与两通道关系。 | 提供原理图、参考工程配置或对应寄存器字段，核对两路硬件保护链。 |
+| HW-02 | [HRTIM Timer B](hw/mcu-pinmap.md#242-定时器-btb无输出) 的更新和复位只记录事件名。[故障与保护](hw/mcu-pinmap.md#243-故障与保护) 已确定 FLT4 来自 COMP1（负通道），FLT5 来自 COMP3（正通道），故障输入极性待核实。 | 提供 Timer B 更新、复位的寄存器配置及 HRTIM `FLT4P`、`FLT5P` 的参考工程配置或实机读值。 |
 | HW-03 | [USART 配置](hw/mcu-pinmap.md#262-参数配置两路一致) 给出溢出使能和 RX 错误时启用 DMA，缺检测与恢复触发。 | 提供 ORE 与 DMA 错误处理、清除顺序和恢复接收行为。 |
+| HW-04 | PSG 采用[双 Bank Flash 布局](adr/0002-dual-bank-flash-layout.md)，实板配置和擦写期间的时序待验证。 | 核对 Flash 选项字节和链接映射中的中断向量、代码、常量及非易失数据页位置。测量擦写期间的中断和前台调度延迟，以及 0x03、0x05 的完整应答用时。 |
+| HW-05 | [UART 半包计时](design/uart-reception.md#半包计时与验收) 的实板计时精度待验证。 | 核对 DMA 进度采样记录与线路上的字节收齐时刻，测量最坏负载下的计时误差并确认台架验收误差带。 |
 
 ## 整机待补项
 
@@ -61,6 +43,34 @@
 
 ## 已裁决条款定位
 
+以下条目依据 2026-11-18 的文档批注、后续确认，以及 2026-11-19 的跨文档一致性审查与执行计划记录（.scratch/grill/findings-consistency.md、exec-plan.md）。
+
+| ID | 裁决 | 正式条款 |
+| --- | --- | --- |
+| PSG-04 | 两种启动源均检查两路电压、两路电流阈值和序列参数。R波触发已使能时，还须有成功写入的 0x36 参数。 | [SRS F-004](srs/pulse-gen-firmware.md#21-启停与触发)、[协议状态矩阵](spec/board-pulse-gen.md#命令状态矩阵) |
+| PSG-05 | 掉线由主机判定，PSG 通过重新握手执行板内恢复。 | [板卡协议 §2](spec/board-pulse-gen.md#重复握手与恢复)、[ECSP §5.3](spec/ecsp-general.md#53-异常场景处理) |
+| PSG-06 | PRM-604 作废，编号保留。 | [PRM 登记表](params.md#6xx-系统非功能)、[SRS F-014、F-015](srs/pulse-gen-firmware.md#21-启停与触发) |
+| PSG-07 | PRM-203 同时用于本版软件发布版本和未写入的硬件版本。空白板 0x04 读回 `0.0.0.0`。上电校验版本记录，缺失或校验失败时将对应默认值连同校验码写回 Flash。 | [PRM 登记表](params.md#2xx-标识与版本)、[SRS I-024](srs/pulse-gen-firmware.md#32-命令与载荷)、[E-009](srs/pulse-gen-firmware.md#5-异常与安全需求e-) |
+| PSG-08 | 中途停止或串级超时后，按本轮已取得的有效样本计算 0x31 电流。 | [SRS F-043、F-046](srs/pulse-gen-firmware.md#24-电流采样齐样与结算)、[采样与判定](design/current-settlement.md#采样与判定) |
+| PSG-09 | 0x3D 成功清除电流异常后，0x31 双通道恢复已停止状态和普通电流读数，保留已完成触发次数。 | [SRS I-021](srs/pulse-gen-firmware.md#32-命令与载荷)、[E-004](srs/pulse-gen-firmware.md#5-异常与安全需求e-) |
+| PSG-10 | PSG 的 0x03、0x05 可在已握手的正常业务会话中写入。 | [板卡符合性矩阵](spec/board-pulse-gen.md#6-符合性矩阵)、[ECSP §8](spec/ecsp-general.md#8-安全要求) |
+| PSG-11 | 0x34 按整数 ns 配置，0x35 原样读回。标定驱动时长及各脉冲间隔按实际 HRTIM 周期取最近整数计数，半计数向上取整。外推点采用 T-001 和 T-006 中较严的容差。 | [SRS F-024、F-025](srs/pulse-gen-firmware.md#22-出波)、[T-001、T-006、T-009](srs/pulse-gen-firmware.md#4-时序需求t-) |
+| PSG-13 | Q16 确认以循环 DMA 的每个半区对应一串，前台收到串结束和齐样事件后优先结算。 | [采样与判定](design/current-settlement.md#采样与判定)、[SRS F-041](srs/pulse-gen-firmware.md#24-电流采样齐样与结算) |
+| PSG-14 | Q17 确认分别验收 ECSP 半包判定规则和实板接收计时精度。 | [UART 半包计时与验收](design/uart-reception.md#半包计时与验收)、[SRS T-011](srs/pulse-gen-firmware.md#4-时序需求t-) |
+| ECSP-01 | 0x03 适用于动作类。0x11 表示当前请求与在途操作互斥，PSG 普通运行忙通过 0x31 确认。 | [ECSP §5.1](spec/ecsp-general.md#51-应答码定义)、[PSG 状态矩阵](spec/board-pulse-gen.md#命令状态矩阵) |
+| ECSP-02 | 命令卡片定义载荷和特有条件。应答码、公共检查次序和状态拒绝优先级统一按 §5。 | [ECSP §5.1、§5.2](spec/ecsp-general.md#51-应答码定义) |
+| ECSP-03 | 空闲心跳的发送完成间隔固定为 1000 ms。主机从该节点最近一帧有效应答或上报收齐时计 3000 ms，恰在截止时刻收齐的有效帧优先刷新计时。 | [ECSP §6.2](spec/ecsp-general.md#62-心跳监控)、[PRM-111 至 PRM-113](params.md#1xx-时序与会话) |
+| ECSP-04 | 上电只主动探测一轮，失败后在 PRM-108 剩余时间内等握手上报。超时进入掉线，后续由有效握手上报触发接纳。 | [ECSP §4.2.1](spec/ecsp-general.md#421-主机上电操作) |
+| ECSP-05 | 半包从候选帧头收齐起计 50 ms，后续字节不续期。候选失效后从其帧头下一字节重扫，沿用原接收时刻。 | [ECSP 半包计时](spec/ecsp-general.md#半包计时与重新同步)、[SRS T-011](srs/pulse-gen-firmware.md#4-时序需求t-) |
+| ECSP-06 | 板卡声明物理层能力，产品发布每条链路的生效配置并核对两端一致。 | [ECSP §2.1](spec/ecsp-general.md#21-物理层参数)、[PSG 链路配置](spec/product-cardiac-pfa.md#3-psg-链路配置) |
+| ECSP-07 | 超过 PRM-109 的长耗时操作禁止受理。 | [ECSP §4.4](spec/ecsp-general.md#44-长耗时命令处理机制) |
+| HW-02（通道绑定） | FLT4 接 COMP1（负通道），FLT5 接 COMP3（正通道）。 | [MCU 故障与保护](hw/mcu-pinmap.md#243-故障与保护) |
+| PSG-15 | Q18（2026-11-19）确认五层架构：按职责从上到下分为应用、运行控制、基础服务、板级执行和 MCU 驱动五层，分层、依赖方向、源文件目录及外设接口见架构文档。 | [固件架构](design/firmware-architecture.md#psg-v3-固件架构) |
+| PSG-16 | PRM-605 作废，编号保留。 | [PRM 登记表](params.md#6xx-系统非功能)、[SRS N-003](srs/pulse-gen-firmware.md#6-非功能需求n-) |
+| PSG-17 | 上传模式上电默认关闭，0x0F 开启；重复握手（I-012）恢复上电默认（关闭）；已建会话内的故障上报不受上传模式关闭影响（会话例外优先）。 | [SRS F-047](srs/pulse-gen-firmware.md#24-电流采样齐样与结算)、[SRS I-012](srs/pulse-gen-firmware.md#32-命令与载荷)、[ECSP 0x0F](spec/ecsp-general.md#0x0f-控制上传模式设置类) |
+| PSG-18 | 上电自检、0x30 受理时出波前自检、触发间歇内自检与 0x3D 执行锁存清除后等待 5 ms（PRM-512）再重读锁存，仍有效则置故障字 bit0，清除成功则清除 bit0。 | [SRS E-003](srs/pulse-gen-firmware.md#5-异常与安全需求e-)、[SRS I-021](srs/pulse-gen-firmware.md#32-命令与载荷)、[MCU PG9](hw/mcu-pinmap.md#1-引脚分配) |
+| PSG-19 | 掉线后 R波触发运行可长时间无主机控制持续出波，裁定记录为安全缺陷。板卡侧独立安全兜底：无主机控制下连续出波轮数/时长上限，超限自动停波并进入安全态，上限待安全分析。 | [GitHub Issue #1](https://github.com/zhengjy926/pfa-psg/issues/1)、[SRS F-011、F-012](srs/pulse-gen-firmware.md#21-启停与触发)、[PRM-313、PRM-314](params.md#3xx-序列与触发) |
+
 | 主题 | 正式条款 |
 | --- | --- |
 | 启停与杆控制 | [SRS 功能需求](srs/pulse-gen-firmware.md#2-功能需求f-) 中 F-012、F-028 至 F-034、F-048 至 F-050；[协议状态矩阵](spec/board-pulse-gen.md#命令状态矩阵) |
@@ -69,3 +79,4 @@
 | 命令区、应答、长耗时控制、故障位归属与帧长 | [ECSP 命令与机制](spec/ecsp-general.md#3-命令集合)；[PSG 帧长](spec/board-pulse-gen.md#帧长和载荷上限) 与 [PSG 故障字](spec/board-pulse-gen.md#4-故障字位分配) |
 | 输出电平、PB4 优先级和工具链 | [MCU HRTIM](hw/mcu-pinmap.md#24-hrtim1)、[NVIC](hw/mcu-pinmap.md#28-nvic)；[SRS N-001](srs/pulse-gen-firmware.md#6-非功能需求n-) |
 | A-01 显控板地址、A-13 版本不符处置 | [产品通信配置 §2](spec/product-cardiac-pfa.md#2-地址版本与板卡规范)、[§4](spec/product-cardiac-pfa.md#4-版本不符处置) |
+| A-14 扩展应答码归属 | [ECSP §3](spec/ecsp-general.md#3-命令集合)、[ECSP §5.1](spec/ecsp-general.md#51-应答码定义) |

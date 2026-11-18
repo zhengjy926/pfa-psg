@@ -1,0 +1,24 @@
+# 嵌入式固件分层调研
+
+PSG v3 的分层建议以 FreeRTOS 任务化调度和本板时序为依据。grblHAL、TinyUSB 和 PX4 提供计划、实时执行、事件交接和板级绑定的源码参考。Zephyr 补充了类型化设备实例的实现。已确认的实现边界见 [PSG v3 固件架构](firmware-architecture.md)。 [PSG 调度 ADR](../adr/0001-bare-metal-cooperative-scheduling.md) · [PSG 时序需求](../srs/pulse-gen-firmware.md#4-时序需求t-)
+
+## grblHAL 的计划、实时执行与硬件移植
+
+- grblHAL 在核心中分两段准备运动。`planner.c` 的 `plan_buffer_line()` 将运动写入计划缓冲区，`stepper.c` 的 `st_prep_buffer()` 在前台从计划块准备执行段，步进定时中断消费执行段。跨层传递的是执行数据，执行端可在中断到来时继续推进。 [grblHAL 官方说明](https://www.grbl.org/what-is-grblhal) · [计划缓冲区](https://github.com/grblHAL/core/blob/4b6a348556336bfc8f9a63ae7bd430c4814b8c7d/planner.c#L399) · [执行段准备](https://github.com/grblHAL/core/blob/4b6a348556336bfc8f9a63ae7bd430c4814b8c7d/stepper.c#L890) · [中断消费](https://github.com/grblHAL/core/blob/4b6a348556336bfc8f9a63ae7bd430c4814b8c7d/stepper.c#L466-L510)
+- 核心注册 `hal.stepper.interrupt_callback`，STM32F4 移植的 `STEPPER_TIMER_IRQHandler` 调回核心。核心通过 `cycles_per_tick` 和 `pulse_start` 请求底层执行。移植按板型选择板卡映射头文件，具体步进、方向和限位引脚定义在映射内。 [核心注册回调](https://github.com/grblHAL/core/blob/4b6a348556336bfc8f9a63ae7bd430c4814b8c7d/grbllib.c#L296) · [HAL 执行接口](https://github.com/grblHAL/core/blob/4b6a348556336bfc8f9a63ae7bd430c4814b8c7d/hal.h#L352-L359) · [STM32F4 中断](https://github.com/grblHAL/STM32F4xx/blob/1c90fa830c72c4e901148890b7b00cad50dc5e67/Src/driver.c#L3152-L3181) · [板型选择](https://github.com/grblHAL/STM32F4xx/blob/1c90fa830c72c4e901148890b7b00cad50dc5e67/Inc/driver.h#L150-L201) · [板卡映射](https://github.com/grblHAL/STM32F4xx/blob/1c90fa830c72c4e901148890b7b00cad50dc5e67/boards/btt_skr_pro_v1_1_map.h#L44-L78)
+- **PSG 借鉴建议。** 运行协调层交付经过裁定的配置和操作意图，外设执行层持有执行进度与外设交接状态，板级层集中实际资源映射。grblHAL 每步由定时中断推进，PSG 的精确输出与保护仍应按本板外设及硬件保护路径设计。 [脉冲引擎设计](pulse-engine.md) · [MCU 外设配置](../hw/mcu-pinmap.md#2-外设配置)
+
+## TinyUSB 的驱动事件与前台处理
+
+- STM32 FSDEV 控制器驱动在 `dcd_int_handler()` 路径报告传输完成。设备核心以 `dcd_event_t` 表达待转交的事件，用静态队列转交给 `tud_task_ext()`，由前台处理常规协议事件。源码同时保留显式的 ISR 回调路径，并支持通过 `CFG_TUD_TASK_EVENTS_PER_RUN` 限制每次调用处理的事件数。 [TinyUSB 官方架构](https://docs.tinyusb.org/en/stable/reference/architecture.html) · [FSDEV 控制器驱动](https://github.com/hathach/tinyusb/blob/f9ee51f1109ed571ec368becfbb0031662b71176/src/portable/st/stm32_fsdev/dcd_stm32_fsdev.c#L348-L398) · [核心事件队列](https://github.com/hathach/tinyusb/blob/f9ee51f1109ed571ec368becfbb0031662b71176/src/device/usbd.c#L406-L431) · [前台处理配额](https://github.com/hathach/tinyusb/blob/f9ee51f1109ed571ec368becfbb0031662b71176/src/device/usbd.c#L851-L903) · [ISR 回调分支](https://github.com/hathach/tinyusb/blob/f9ee51f1109ed571ec368becfbb0031662b71176/src/device/usbd.c#L1552-L1605)
+- STM32G4 BSP 的 `family.c` 提供 `board_init()` 和 IRQ 入口，NUCLEO-G474 的 `board.h` 提供具体 GPIO、UART 引脚和时钟配置。控制器寄存器操作属于可复用的 FSDEV 驱动。 [STM32G4 BSP](https://github.com/hathach/tinyusb/blob/f9ee51f1109ed571ec368becfbb0031662b71176/hw/bsp/stm32g4/family.c#L55-L105) · [NUCLEO-G474 板级定义](https://github.com/hathach/tinyusb/blob/f9ee51f1109ed571ec368becfbb0031662b71176/hw/bsp/stm32g4/boards/stm32g474nucleo/board.h#L41-L84) · [驱动移植文档](https://docs.tinyusb.org/en/stable/porting.html)
+- **PSG 借鉴建议。** UART 驱动向 ECSP 提供字节流和接收进度。采集执行端记录样本就绪及其归属，测量模块解释样本、生成统计和诊断结果，运行协调层消费结果。每条交接分别定义处理上下文、容量或有效期和超限处置。硬件保护和其他有专门时限的路径按本项目时序要求设计。 [UART 收发设计](uart-reception.md) · [电流采集与串级结算设计](current-settlement.md)
+
+## PX4 的控制意图、逻辑输出与物理执行
+
+- `MulticopterRateControl` 发布力矩和推力设定值。`ControlAllocator` 消费设定值并计算、发布逻辑电机和舵机指令。输出层的 `MixingOutput` 按配置把逻辑输出功能分配到物理通道，调用驱动的 `updateOutputs()`。`PWMOut::updateOutputs()` 最终调用 `up_pwm_servo_set()`。 [PX4 控制分配指南](https://docs.px4.io/main/en/concept/control_allocation) · [控制器发布设定值](https://github.com/PX4/PX4-Autopilot/blob/b2343f6b626fd728e8ce09ac7da4a5917f2d51fb/src/modules/mc_rate_control/MulticopterRateControl.cpp#L267-L278) · [分配器计算](https://github.com/PX4/PX4-Autopilot/blob/b2343f6b626fd728e8ce09ac7da4a5917f2d51fb/src/modules/control_allocator/ControlAllocator.cpp#L381-L446) · [逻辑输出发布](https://github.com/PX4/PX4-Autopilot/blob/b2343f6b626fd728e8ce09ac7da4a5917f2d51fb/src/modules/control_allocator/ControlAllocator.cpp#L745-L804) · [输出功能绑定](https://github.com/PX4/PX4-Autopilot/blob/b2343f6b626fd728e8ce09ac7da4a5917f2d51fb/src/lib/mixer_module/mixer_module.cpp#L270-L303) · [PWM 驱动](https://github.com/PX4/PX4-Autopilot/blob/b2343f6b626fd728e8ce09ac7da4a5917f2d51fb/src/drivers/pwm_out/PWMOut.cpp#L130-L146)
+- **PSG 借鉴建议。** 运行协调层使用本板业务中的通道和运行状态。外设执行层将已裁定的动作落实为硬件操作，具体引脚、通道与定时资源在编译期绑定。单板现阶段可用直接调用和静态数据保留这些边界。PX4 的 uORB 主题、工作队列及动态输出映射对应多机型和多输出驱动的需求。 [PSG 调度 ADR](../adr/0001-bare-metal-cooperative-scheduling.md) · [PSG 引脚表](../hw/mcu-pinmap.md#1-引脚分配)
+
+## Zephyr 的类型化设备实例
+
+Zephyr 的 STM32 UART 驱动为每个设备分别定义只读配置、运行数据和设备操作集，并用 `DEVICE_DT_INST_DEFINE` 绑定。PSG 的 UART 设计已采用同样的实例职责划分，具体 USART、DMA 和中断由静态板级装配提供。这条边界同样适合把 Flash 的擦写操作与标识记录格式分开。 [Zephyr 设备模型](https://docs.zephyrproject.org/latest/kernel/drivers/index.html) · [STM32 UART 实例实现](https://github.com/zephyrproject-rtos/zephyr/blob/main/drivers/serial/uart_stm32.c) · [PSG UART 收发设计](uart-reception.md)
