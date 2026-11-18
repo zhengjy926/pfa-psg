@@ -1,11 +1,10 @@
 # 术语表
 
-> 单文件、两个语境分节。定义一句话；细节属于需求或协议，不在本文件展开。
-> 索引见 [docs/README.md](docs/README.md)。
+> 按板级业务、固件工程或 ECSP 语境查词。`_Avoid_` 列出易混用的说法。行为、取值和架构决定查 [文档导航](docs/README.md)。
 
 ## 板级语言
 
-脉冲信号发生板固件工程（在 Zephyr 真内核上、用 Keil AC6 / armlink 构建，决策见 `docs/adr/`）的领域语言，描述波形参数、杆导通、出波和触发。需求见 [pulse-gen-firmware.md](docs/srs/pulse-gen-firmware.md)，板级协议见 [board-pulse-gen.md](docs/spec/board-pulse-gen.md)，MCU 绑定见 [mcu-pinmap.md](docs/hw/mcu-pinmap.md)，数值见 [params.md](docs/params.md)。
+脉冲信号发生板业务用语。可验收行为见 [固件需求](docs/srs/pulse-gen-firmware.md)，命令字段见 [板卡协议](docs/spec/board-pulse-gen.md)。
 
 ### 波形
 
@@ -304,16 +303,18 @@ _Avoid_: 电流故障态, 故障态
 一次运行中因电流异常而终止的那个脉冲串；部分采样丢弃，不计入序列输出平均，上报电流另取过流瞬间样本均值。（细节见 [板卡规范](docs/spec/board-pulse-gen.md)）
 _Avoid_: 故障串, 故障脉冲串
 
-### 运行时（过渡态，[M1 后删除]）
+## 固件工程用语
 
-> 本节描述 M1 前的过渡态（裸机垫片）；M1 通过后随 `port/` 整体删除（见 `docs/adr/0001`）。
+> 本节解释既有工程描述中的术语。架构决策和阶段状态需要核对 [架构来源](docs/ambiguities.md#架构与硬件输入)。
+
+### 运行时
 
 **硬裸机**:
 启动、链接与主循环归本工程所有，上游内核不参与调度。
 _Avoid_: 裸奔, no-OS, 无系统
 
 **垫片层**:
-为使上游源码在硬裸机上成立而提供的最小 Zephyr API 实现；工程内唯一允许出现偏差的地方。
+为使上游源码在硬裸机上工作而提供的最小 Zephyr API 实现。
 _Avoid_: 适配层, wrapper, HAL 层
 
 **初始化运行器**:
@@ -345,7 +346,7 @@ _Avoid_: 模块, 组件, 中间件, 功能模块
 ### 配置
 
 **上游**:
-作为移植来源的 Zephyr 源码树，按目录规则预置进 `third_party/`；对它的修改只能以补丁队列的形式显式存在（见 `docs/adr/0003`）。
+作为移植来源的 Zephyr 源码树。
 _Avoid_: 源码库, 轮子
 
 **配置快照**:
@@ -362,15 +363,15 @@ _Avoid_: 精简 dts, 手写 dts
 ### 边界
 
 **目录规则预置**:
-vendored 的 Zephyr 源码按目录规则整块纳入，而不是按“当前用到”的文件挑选。（细节见 `docs/adr/0002`）
+按目录规则整块纳入上游 Zephyr 源码的方式。
 _Avoid_: 文件级选择, 裁剪, 删减
 
 **补丁队列**:
-对上游源码的显式修改，以可回放的补丁文件存在，进 `patches/` 并由 `zephyr_sync.yml` 记录；它是唯一允许改动 vendored 源码的形态（见 `docs/adr/0003`）。
+以可回放的补丁文件记录对上游源码的修改。
 _Avoid_: 直接改源码树, 静默修改
 
 **生成物**:
-regen 从设备树与 Kconfig 派生、随仓库提交的产物，可复现，不是冻结的。（细节见 `docs/adr/0003`）
+由 regen 从设备树与 Kconfig 派生、随仓库提交的可复现产物。
 _Avoid_: 手工维护的 scatter 模板, 手写文件清单
 
 ## ECSP 语言
