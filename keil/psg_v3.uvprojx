@@ -16,8 +16,8 @@
         <TargetCommonOption>
           <Device>STM32G474QETx</Device>
           <Vendor>STMicroelectronics</Vendor>
-          <PackID>Keil.STM32G4xx_DFP.2.2.0</PackID>
-          <PackURL>http://www.keil.com/pack/</PackURL>
+          <PackID>Keil.STM32G4xx_DFP.2.0.0</PackID>
+          <PackURL>https://www.keil.com/pack/</PackURL>
           <Cpu>IROM(0x08000000-0x803FFFF) IRAM(0x20000000-0x2001FFFF) CLOCK(8000000) FPU2 CPUTYPE("Cortex-M4")</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
           <StartupFile></StartupFile>
@@ -54,7 +54,7 @@
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
           <DebugInformation>1</DebugInformation>
-          <BrowseInformation>0</BrowseInformation>
+          <BrowseInformation>1</BrowseInformation>
           <ListingPath>.\Listings\</ListingPath>
           <HexFormatSelection>1</HexFormatSelection>
           <Merge32K>0</Merge32K>
@@ -137,7 +137,7 @@
             <DriverSelection>4107</DriverSelection>
           </Flash1>
           <bUseTDR>1</bUseTDR>
-          <Flash2>STLink\ST-LINKIII-KEIL_SWO.dll</Flash2>
+          <Flash2>BIN\UL2CM3.DLL</Flash2>
           <Flash3></Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
@@ -184,6 +184,9 @@
             <hadXRAM>0</hadXRAM>
             <uocXRam>0</uocXRam>
             <RvdsVP>2</RvdsVP>
+            <RvdsMve>0</RvdsMve>
+            <RvdsCdeCp>0</RvdsCdeCp>
+            <nBranchProt>0</nBranchProt>
             <hadIRAM2>0</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
@@ -243,13 +246,13 @@
               </Ocm6>
               <IRAM>
                 <Type>0</Type>
-                <StartAddress>0x10000000</StartAddress>
-                <Size>0x8000</Size>
+                <StartAddress>0x20000000</StartAddress>
+                <Size>0x20000</Size>
               </IRAM>
               <IROM>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x80000</Size>
+                <Size>0x40000</Size>
               </IROM>
               <XRAM>
                 <Type>0</Type>
@@ -324,6 +327,7 @@
             <uThumb>0</uThumb>
             <uSurpInc>0</uSurpInc>
             <uC99>1</uC99>
+            <uGnu>0</uGnu>
             <useXO>0</useXO>
             <v6Lang>4</v6Lang>
             <v6LangP>1</v6LangP>
@@ -349,7 +353,7 @@
             <NoWarn>0</NoWarn>
             <uSurpInc>0</uSurpInc>
             <useXO>0</useXO>
-            <uClangAs>0</uClangAs>
+            <ClangAsOpt>4</ClangAsOpt>
             <VariousControls>
               <MiscControls>--diag_suppress=3910</MiscControls>
               <Define></Define>
@@ -376,210 +380,215 @@
           </LDads>
         </TargetArmAds>
       </TargetOption>
-        <Groups>
-    <Group>
-      <GroupName>Application</GroupName>
-      <Files>
-        <File>
-          <FileName>main.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\app\main.c</FilePath>
-        </File>
-        <File>
-          <FileName>psg_app.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\app\psg_app.c</FilePath>
-        </File>
-        <File>
-          <FileName>psg_app_tasks.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\app\psg_app_tasks.c</FilePath>
-        </File>
-        <File>
-          <FileName>psg_ecsp.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\app\psg_ecsp.c</FilePath>
-        </File>
-        <File>
-          <FileName>psg_reports.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\app\psg_reports.c</FilePath>
-        </File>
-        <File>
-          <FileName>ecsp_frame.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\app\ecsp\ecsp_frame.c</FilePath>
-        </File>
-        <File>
-          <FileName>ecsp_rx.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\app\ecsp\ecsp_rx.c</FilePath>
-        </File>
-        <File>
-          <FileName>ecsp_session.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\app\ecsp\ecsp_session.c</FilePath>
-        </File>
-        <File>
-          <FileName>ecsp_tx.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\app\ecsp\ecsp_tx.c</FilePath>
-        </File>
-      </Files>
-    </Group>
-    <Group>
-      <GroupName>Run</GroupName>
-      <Files>
-        <File>
-          <FileName>pulse_engine.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\run\pulse_engine.c</FilePath>
-        </File>
-        <File>
-          <FileName>run_config.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\run\run_config.c</FilePath>
-        </File>
-      </Files>
-    </Group>
-    <Group>
-      <GroupName>Services</GroupName>
-      <Files>
-        <File>
-          <FileName>dedup.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\svc\dedup\dedup.c</FilePath>
-        </File>
-        <File>
-          <FileName>fault.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\svc\fault\fault.c</FilePath>
-        </File>
-        <File>
-          <FileName>identity.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\svc\identity\identity.c</FilePath>
-        </File>
-      </Files>
-    </Group>
-    <Group>
-      <GroupName>Drivers</GroupName>
-      <Files>
-        <File>
-          <FileName>uart_ring.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\drv\uart\uart_ring.c</FilePath>
-        </File>
-        <File>
-          <FileName>stm32_timebase.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\drv\stm32g4\stm32_timebase.c</FilePath>
-        </File>
-        <File>
-          <FileName>stm32_led.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\drv\stm32g4\stm32_led.c</FilePath>
-        </File>
-        <File>
-          <FileName>stm32_uart.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\drv\stm32g4\stm32_uart.c</FilePath>
-        </File>
-        <File>
-          <FileName>stm32_comp.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\drv\stm32g4\stm32_comp.c</FilePath>
-        </File>
-        <File>
-          <FileName>stm32_iwdg.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\drv\stm32g4\stm32_iwdg.c</FilePath>
-        </File>
-        <File>
-          <FileName>stm32_watchdog.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\drv\stm32g4\stm32_watchdog.c</FilePath>
-        </File>
-        <File>
-          <FileName>stm32_flash.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\drv\stm32g4\stm32_flash.c</FilePath>
-        </File>
-      </Files>
-    </Group>
-    <Group>
-      <GroupName>BSP</GroupName>
-      <Files>
-        <File>
-          <FileName>psg_board.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\bsp\psg_v3\psg_board.c</FilePath>
-        </File>
-      </Files>
-    </Group>
-    <Group>
-      <GroupName>Shared</GroupName>
-      <Files>
-        <File>
-          <FileName>psg_bytes.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\shared\psg_bytes.c</FilePath>
-        </File>
-      </Files>
-    </Group>
-    <Group>
-      <GroupName>Utils</GroupName>
-      <Files>
-        <File>
-          <FileName>psg_log.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\utils\psg_log.c</FilePath>
-        </File>
-      </Files>
-    </Group>
-    <Group>
-      <GroupName>FreeRTOS</GroupName>
-      <Files>
-        <File>
-          <FileName>tasks.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\third_party\freertos\Source\tasks.c</FilePath>
-        </File>
-        <File>
-          <FileName>queue.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\third_party\freertos\Source\queue.c</FilePath>
-        </File>
-        <File>
-          <FileName>list.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\third_party\freertos\Source\list.c</FilePath>
-        </File>
-        <File>
-          <FileName>port.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\third_party\freertos\Source\portable\GCC\ARM_CM4F\port.c</FilePath>
-        </File>
-      </Files>
-    </Group>
-    <Group>
-      <GroupName>CMSIS</GroupName>
-      <Files>
-        <File>
-          <FileName>system_stm32g4xx.c</FileName>
-          <FileType>1</FileType>
-          <FilePath>..\third_party\cmsis\device\src\system_stm32g4xx.c</FilePath>
-        </File>
-        <File>
-          <FileName>startup_stm32g474xx.s</FileName>
-          <FileType>2</FileType>
-          <FilePath>..\third_party\cmsis\startup\arm\startup_stm32g474xx.s</FilePath>
-        </File>
-      </Files>
-    </Group>
-  </Groups>
+      <Groups>
+        <Group>
+          <GroupName>Application</GroupName>
+          <Files>
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\main.c</FilePath>
+            </File>
+            <File>
+              <FileName>psg_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\psg_app.c</FilePath>
+            </File>
+            <File>
+              <FileName>psg_app_tasks.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\psg_app_tasks.c</FilePath>
+            </File>
+            <File>
+              <FileName>psg_ecsp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\psg_ecsp.c</FilePath>
+            </File>
+            <File>
+              <FileName>psg_reports.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\psg_reports.c</FilePath>
+            </File>
+            <File>
+              <FileName>ecsp_frame.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\ecsp\ecsp_frame.c</FilePath>
+            </File>
+            <File>
+              <FileName>ecsp_rx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\ecsp\ecsp_rx.c</FilePath>
+            </File>
+            <File>
+              <FileName>ecsp_session.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\ecsp\ecsp_session.c</FilePath>
+            </File>
+            <File>
+              <FileName>ecsp_tx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\ecsp\ecsp_tx.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Run</GroupName>
+          <Files>
+            <File>
+              <FileName>pulse_engine.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\run\pulse_engine.c</FilePath>
+            </File>
+            <File>
+              <FileName>run_config.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\run\run_config.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Services</GroupName>
+          <Files>
+            <File>
+              <FileName>dedup.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\svc\dedup\dedup.c</FilePath>
+            </File>
+            <File>
+              <FileName>fault.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\svc\fault\fault.c</FilePath>
+            </File>
+            <File>
+              <FileName>identity.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\svc\identity\identity.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Drivers</GroupName>
+          <Files>
+            <File>
+              <FileName>uart_ring.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drv\uart\uart_ring.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32_timebase.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drv\stm32g4\stm32_timebase.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32_led.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drv\stm32g4\stm32_led.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32_uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drv\stm32g4\stm32_uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32_comp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drv\stm32g4\stm32_comp.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32_iwdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drv\stm32g4\stm32_iwdg.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32_watchdog.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drv\stm32g4\stm32_watchdog.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32_flash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drv\stm32g4\stm32_flash.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>BSP</GroupName>
+          <Files>
+            <File>
+              <FileName>psg_board.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\psg_v3\psg_board.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Shared</GroupName>
+          <Files>
+            <File>
+              <FileName>psg_bytes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\shared\psg_bytes.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Utils</GroupName>
+          <Files>
+            <File>
+              <FileName>psg_log.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\utils\psg_log.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>FreeRTOS</GroupName>
+          <Files>
+            <File>
+              <FileName>tasks.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\third_party\freertos\Source\tasks.c</FilePath>
+            </File>
+            <File>
+              <FileName>queue.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\third_party\freertos\Source\queue.c</FilePath>
+            </File>
+            <File>
+              <FileName>list.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\third_party\freertos\Source\list.c</FilePath>
+            </File>
+            <File>
+              <FileName>port.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\third_party\freertos\Source\portable\GCC\ARM_CM4F\port.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>CMSIS</GroupName>
+          <Files>
+            <File>
+              <FileName>system_stm32g4xx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\third_party\cmsis\device\src\system_stm32g4xx.c</FilePath>
+            </File>
+            <File>
+              <FileName>startup_stm32g474xx.s</FileName>
+              <FileType>2</FileType>
+              <FilePath>..\third_party\cmsis\startup\arm\startup_stm32g474xx.s</FilePath>
+            </File>
+          </Files>
+        </Group>
+      </Groups>
     </Target>
   </Targets>
 
-</Project>
+  <RTE>
+    <apis/>
+    <components/>
+    <files/>
+  </RTE>
 
+</Project>

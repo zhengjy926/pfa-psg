@@ -47,7 +47,7 @@ scatter file `bsp/psg_v3/psg_v3.sct`).  Batch build:
   half-packet timing, session/handshake/heartbeat, adjudication order, dedup,
   run state, upload gating, 0x3C/0x11 reporting and reset ordering.
 - Both target builds link with 0 errors and 0 warnings.  Static RAM is
-  21.3 KiB (Keil) / 22.3 KiB (GCC), under the 32 KiB target and the PRM-602 limit;
+  21.3 KiB (Keil) / 22.3 KiB (GCC), under the 32 KiB target and the 64 KB static RAM limit;
   the GCC image is 18,556 B.
 - `cppcheck --addon=misra` reports zero rule findings on the project sources
   (the nine `misra-config` notices come from FreeRTOS macros that cppcheck
