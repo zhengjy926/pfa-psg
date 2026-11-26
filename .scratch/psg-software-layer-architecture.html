@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>psg 软件分层架构图</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      color: #252b3b;
+      background: #fff;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    main {
+      box-sizing: border-box;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 36px 32px;
+    }
+
+    h1 {
+      margin: 0 0 24px;
+      color: #282b42;
+      font-size: clamp(24px, 3.2vw, 36px);
+      font-weight: 650;
+    }
+
+    .architecture {
+      display: grid;
+    }
+
+    .layer {
+      background: #eeeef2;
+    }
+
+    .band {
+      display: grid;
+      grid-template-columns: minmax(164px, 22%) minmax(0, 1fr);
+      min-height: 104px;
+    }
+
+    .parallel {
+      display: grid;
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+      gap: 8px;
+    }
+
+    .panel {
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .layer-heading {
+      display: grid;
+      align-content: center;
+      padding: 16px 24px;
+      background: #dedee5;
+    }
+
+    .layer-heading h2 {
+      margin: 0;
+      color: #393650;
+      font-family: "Songti SC", "SimSun", "Microsoft YaHei", serif;
+      font-size: 25px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
+    .modules {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 0;
+      padding: 16px;
+      list-style: none;
+    }
+
+    .feature-modules,
+    .device-modules {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .service-modules {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .modules li {
+      display: grid;
+      place-content: center;
+      gap: 5px;
+      min-width: 0;
+      min-height: 54px;
+      padding: 8px;
+      border: 1px solid #dcdde6;
+      background: #fbfbfd;
+      font-size: 16px;
+      line-height: 1.45;
+      text-align: center;
+      overflow-wrap: anywhere;
+    }
+
+    .modules strong {
+      font-weight: 600;
+    }
+
+    .modules small {
+      color: #53586a;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .connectors {
+      min-height: 34px;
+    }
+
+    .connectors span {
+      position: relative;
+      place-self: center;
+      width: 1px;
+      height: 20px;
+      background: #777b91;
+    }
+
+    .connectors span::after {
+      position: absolute;
+      bottom: 0;
+      left: -3px;
+      width: 6px;
+      height: 6px;
+      border-right: 1px solid #777b91;
+      border-bottom: 1px solid #777b91;
+      content: "";
+      transform: rotate(45deg);
+    }
+
+    @media (max-width: 760px) {
+      main {
+        padding: 24px 16px;
+      }
+
+      .architecture {
+        gap: 8px;
+      }
+
+      .band,
+      .parallel {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .connectors {
+        display: none;
+      }
+
+      .layer-heading {
+        padding: 12px 16px;
+      }
+
+      .layer-heading h2 {
+        font-size: 18px;
+      }
+
+      .modules {
+        gap: 6px;
+        padding: 8px;
+      }
+
+      .modules li {
+        min-height: 42px;
+        padding: 6px;
+        font-size: 14px;
+      }
+    }
+
+    @media (max-width: 580px) {
+      .feature-modules,
+      .device-modules {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media print {
+      .architecture {
+        print-color-adjust: exact;
+      }
+
+      .layer {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>psg 软件分层架构图</h1>
+    <div class="architecture">
+      <section class="layer band" aria-labelledby="app">
+        <div class="layer-heading"><h2 id="app">应用层</h2></div>
+        <ul class="modules">
+          <li><strong>命令分发</strong><small>命令解析、分发与应答</small></li>
+          <li><strong>脉冲引擎</strong><small>运行状态、启停裁定与出波许可</small></li>
+          <li><strong>安全监视</strong><small>任务进度检查与喂狗裁定</small></li>
+        </ul>
+      </section>
+
+      <div class="parallel connectors" aria-hidden="true"><span></span><span></span></div>
+
+      <div class="parallel">
+        <section class="layer panel" aria-labelledby="features">
+          <div class="layer-heading"><h2 id="features">功能模块层</h2></div>
+          <ul class="modules feature-modules">
+            <li><strong>脉冲发生</strong><small>定时出波</small></li>
+            <li><strong>r 波输入</strong><small>边沿捕获与时间戳</small></li>
+            <li><strong>电流测量</strong><small>采集与结算</small></li>
+            <li><strong>过流保护</strong><small>硬件关断与事件</small></li>
+            <li><strong>杆控制</strong><small>杆切换与状态</small></li>
+          </ul>
+        </section>
+
+        <section class="layer panel" aria-labelledby="services">
+          <div class="layer-heading"><h2 id="services">通用服务层</h2></div>
+          <ul class="modules service-modules">
+            <li><strong>通信会话</strong><small>帧解析与心跳<br>超时重传与去重</small></li>
+            <li><strong>参数管理</strong><small>默认值与存取<br>适用参数持久化</small></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="parallel connectors" aria-hidden="true"><span></span><span></span></div>
+
+      <section class="layer band" aria-labelledby="drv">
+        <div class="layer-heading"><h2 id="drv">设备驱动层</h2></div>
+        <ul class="modules device-modules">
+          <li>uart</li>
+          <li>flash</li>
+          <li>hrtim</li>
+          <li>adc</li>
+          <li>dma</li>
+          <li>dac</li>
+          <li>comparator</li>
+          <li>timer</li>
+          <li>watchdog</li>
+          <li>led</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
