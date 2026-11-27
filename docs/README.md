@@ -4,7 +4,7 @@
 
 | 要查什么 | 从哪里开始 | 定位方式 |
 | --- | --- | --- |
-| 子系统行为、性能和安全要求 | [PSG-SyRS](syrs/psg-subsystem-requirements.md) | 按 SYS 编号查系统判据、固件条款及验收用例 |
+| 子系统行为、性能和安全要求 | [PSG-SyRS](syrs/psg-subsystem-requirements.md) | 按 SYS 编号查系统要求及验收判据 |
 | 子系统边界和软硬件分配 | [PSG-SyAS](design/psg-subsystem-architecture.md) | 查组成、内部接口、功率执行及保护路径、时序分段和集成证据 |
 | 实现范围、固件行为和验收 | [SRS](srs/pulse-gen-firmware.md#0-查阅约定) | F- 功能、I- 接口、T- 时序、E- 异常与安全、N- 非功能 |
 | PSG 线上接口 | [命令索引](spec/board-pulse-gen.md#31-命令总表) · [状态矩阵](spec/board-pulse-gen.md#命令状态矩阵) · [故障字](spec/board-pulse-gen.md#4-故障字位分配) · [支持声明](spec/board-pulse-gen.md#6-符合性矩阵) | 按命令码查字段和报文，按业务状态查受理与应答 |
